@@ -379,12 +379,14 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 				t.NextEligible = time.Now().UTC().Add(jitteredDelay(5 * time.Second)).Format(time.RFC3339)
 				t.ClaimedBy = ""
 				t.LeaseUntil = ""
+				store.queued[t.ID] = struct{}{}
 				t.LeaseExpiries += 1
 				if t.LeaseExpiries%3 == 0 {
 					t.Attempts += 1
 					t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
 					if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
 						t.Status = "failed"
+						delete(store.queued, t.ID)
 					}
 				}
 			} else {
