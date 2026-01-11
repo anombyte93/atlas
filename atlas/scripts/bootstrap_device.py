@@ -24,6 +24,7 @@ def ensure_dir(path):
 
 def write_device_config(dest, device_id, role, hostname, control_plane_url):
     config = {
+        "schema_version": "1.0.0",
         "id": device_id,
         "hostname": hostname,
         "roles": [role],
@@ -43,6 +44,7 @@ def write_device_config(dest, device_id, role, hostname, control_plane_url):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
     agent_cfg = {
+        "schema_version": "1.0.0",
         "id": f"agent-{device_id}",
         "device_id": device_id,
         "version": "0.1.0",

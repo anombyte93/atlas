@@ -97,14 +97,22 @@ func main() {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) { handleRegister(w, r, registry, cfg) })
 	mux.HandleFunc("/heartbeat", func(w http.ResponseWriter, r *http.Request) { handleHeartbeat(w, r, registry, cfg) })
-	mux.HandleFunc("/devices", func(w http.ResponseWriter, r *http.Request) { handleListDevices(w, r, registry) })
+	mux.HandleFunc("/devices", func(w http.ResponseWriter, r *http.Request) { handleListDevices(w, r, registry, cfg) })
 	mux.HandleFunc("/tasks/submit", func(w http.ResponseWriter, r *http.Request) { handleSubmitTask(w, r, store, cfg) })
 	mux.HandleFunc("/tasks/claim", func(w http.ResponseWriter, r *http.Request) { handleClaimTask(w, r, store, cfg) })
 	mux.HandleFunc("/tasks/report", func(w http.ResponseWriter, r *http.Request) { handleReportTask(w, r, store, cfg) })
 	mux.HandleFunc("/tasks/list", func(w http.ResponseWriter, r *http.Request) { handleListTasks(w, r, store, cfg) })
 
 	log.Printf("control-plane listening on %s", cfg.ListenAddr)
-	log.Fatal(http.ListenAndServe(cfg.ListenAddr, loggingMiddleware(mux)))
+	server := &http.Server{
+		Addr:              cfg.ListenAddr,
+		Handler:           loggingMiddleware(mux),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func loadConfig(path string) Config {
@@ -147,6 +155,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, 
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var payload Device
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -172,6 +181,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var payload struct {
 		DeviceID     string     `json:"device_id"`
 		Timestamp    string     `json:"timestamp"`
@@ -190,7 +200,11 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registry) {
+func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	registry.mu.RLock()
 	defer registry.mu.RUnlock()
 	list := make([]*Device, 0, len(registry.devices))
@@ -210,12 +224,25 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var t Task
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if t.ID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if t.Type != "shell" && t.Type != "script" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if t.Type == "shell" && t.Command == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if t.Type == "script" && t.ScriptPath == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -244,11 +271,16 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req struct {
 		Tags []string `json:"tags"`
 		AgentID string `json:"agent_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if req.AgentID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -287,18 +319,43 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var report Task
 	if err := json.NewDecoder(r.Body).Decode(&report); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	store.mu.Lock()
-	if t, ok := store.tasks[report.ID]; ok {
-		t.Status = report.Status
-		t.Result = report.Result
-		t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-		store.appendEvent(*t)
+	t, ok := store.tasks[report.ID]
+	if !ok {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
+	if t.ClaimedBy == "" || t.ClaimedBy != report.ClaimedBy {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if leaseExpired(t.LeaseUntil) {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	if report.Status != "completed" && report.Status != "failed" {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if t.Status != "running" {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	t.Status = report.Status
+	t.Result = report.Result
+	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	store.appendEvent(*t)
 	store.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
@@ -346,6 +403,7 @@ func (s *TaskStore) appendEvent(t Task) {
 	b, _ := json.Marshal(t)
 	_, _ = w.WriteString(string(b) + "\n")
 	_ = w.Flush()
+	_ = f.Sync()
 }
 
 func (s *TaskStore) loadFromLog() {

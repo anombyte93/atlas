@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -144,7 +145,8 @@ func detectMemoryMB() int {
 	if err != nil {
 		return 0
 	}
-	for _, line := range strings.Split(string(b), "\n") {
+	for _, line := range strings.Split(string(b), "
+") {
 		if strings.HasPrefix(line, "MemTotal:") {
 			fields := strings.Fields(line)
 			if len(fields) >= 2 {
@@ -193,6 +195,7 @@ type Task struct {
 	ScriptPath   string   `json:"script_path,omitempty"`
 	TimeoutSec   int      `json:"timeout_sec"`
 	RequiredTags []string `json:"required_tags,omitempty"`
+	ClaimedBy    string   `json:"claimed_by,omitempty"`
 	Result       *TaskResult `json:"result,omitempty"`
 }
 
@@ -215,6 +218,7 @@ func pollAndExecute(cfg AgentConfig) {
 	result, status := executeTask(cfg, task)
 	task.Status = status
 	task.Result = result
+	task.ClaimedBy = cfg.ID
 	_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
 }
 
@@ -224,20 +228,32 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 		timeout = 60 * time.Second
 	}
 	var cmdStr string
-	if task.Type == \"shell\" {
+	if task.Type == "shell" {
 		cmdStr = task.Command
-	} else if task.Type == \"script\" {
-		if cfg.WorldRepoPath == \"\" {
-			return &TaskResult{ExitCode: 1, Stderr: \"world_repo_path not set\"}, \"failed\"
+	} else if task.Type == "script" {
+		if cfg.WorldRepoPath == "" {
+			return &TaskResult{ExitCode: 1, Stderr: "world_repo_path not set"}, "failed"
 		}
-		cmdStr = cfg.WorldRepoPath + \"/\" + task.ScriptPath
+		if filepath.IsAbs(task.ScriptPath) || strings.Contains(task.ScriptPath, "..") {
+			return &TaskResult{ExitCode: 1, Stderr: "invalid script path"}, "failed"
+		}
+		full := filepath.Join(cfg.WorldRepoPath, task.ScriptPath)
+		if _, err := os.Stat(full); err != nil {
+			return &TaskResult{ExitCode: 1, Stderr: "script not found"}, "failed"
+		}
+		cmdStr = full
 	}
-	if cmdStr == \"\" {
-		return &TaskResult{ExitCode: 1, Stderr: \"empty command\"}, \"failed\"
+	if cmdStr == "" {
+		return &TaskResult{ExitCode: 1, Stderr: "empty command"}, "failed"
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, \"sh\", \"-c\", cmdStr)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.CommandContext(ctx, "cmd", "/C", cmdStr)
+	} else {
+		cmd = exec.CommandContext(ctx, "sh", "-c", cmdStr)
+	}
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -246,9 +262,9 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 	if err != nil {
 		exitCode = 1
 	}
-	status := \"completed\"
+	status := "completed"
 	if exitCode != 0 || ctx.Err() != nil {
-		status = \"failed\"
+		status = "failed"
 	}
 	return &TaskResult{ExitCode: exitCode, Stdout: stdout.String(), Stderr: stderr.String()}, status
 }
@@ -299,6 +315,7 @@ func hostname() string {
 }
 
 func fatal(msg string, err error) {
-	_, _ = os.Stderr.WriteString(msg + ": " + err.Error() + "\n")
+	_, _ = os.Stderr.WriteString(msg + ": " + err.Error() + "
+")
 	os.Exit(1)
 }

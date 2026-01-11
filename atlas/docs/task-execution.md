@@ -28,6 +28,7 @@ POST `/tasks/report`
 ```
 {
   "id": "task-1",
+  "claimed_by": "agent-local",
   "status": "completed",
   "result": {"exit_code": 0, "stdout": "hello\n", "stderr": ""}
 }
