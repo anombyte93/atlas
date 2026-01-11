@@ -590,9 +590,20 @@ func handleRenewTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
 		return
 	}
+	if t.Status != string(StateRunning) {
+		store.mu.Unlock()
+		writeError(w, http.StatusConflict, "state_conflict", "task not running")
+		return
+	}
+	if leaseExpired(t.LeaseUntil) {
+		store.mu.Unlock()
+		writeError(w, http.StatusConflict, "lease_expired", "task lease expired")
+		return
+	}
 	t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	store.persistTask(*t)
+	store.audit.Log("task_renew", map[string]any{"task_id": t.ID, "agent_id": req.ClaimedBy})
 	store.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
