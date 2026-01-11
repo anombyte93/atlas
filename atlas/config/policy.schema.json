@@ -3,8 +3,9 @@
   "$id": "atlas.policy.schema.json",
   "title": "Atlas Policy",
   "type": "object",
-  "required": ["id", "type", "scope", "rules"],
+  "required": ["schema_version", "id", "type", "scope", "rules"],
   "properties": {
+    "schema_version": {"type": "string"},
     "id": {"type": "string"},
     "type": {"enum": ["rbac", "abac", "constraint", "safety"]},
     "scope": {"type": "string"},

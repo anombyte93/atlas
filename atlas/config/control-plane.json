@@ -3,5 +3,6 @@
   "data_dir": "./data",
   "config_path": "../../config/control-plane.json",
   "world_repo_path": "../../",
-  "allowed_roles": ["server", "network_device", "workstation", "container_host", "iot_embedded"]
+  "allowed_roles": ["server", "network_device", "workstation", "container_host", "iot_embedded"],
+  "api_token": "change-me"
 }

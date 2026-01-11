@@ -3,8 +3,9 @@
   "$id": "atlas.device.schema.json",
   "title": "Atlas Device",
   "type": "object",
-  "required": ["id", "hostname", "roles", "capabilities"],
+  "required": ["schema_version", "id", "hostname", "roles", "capabilities"],
   "properties": {
+    "schema_version": {"type": "string"},
     "id": {"type": "string", "minLength": 8},
     "hostname": {"type": "string"},
     "roles": {

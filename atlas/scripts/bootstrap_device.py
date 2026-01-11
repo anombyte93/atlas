@@ -69,7 +69,10 @@ def register_device(control_plane_url, device_id, hostname, role):
         "capabilities": {"os": sys.platform, "arch": os.uname().machine if hasattr(os, "uname") else "unknown"}
     }
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(f"{control_plane_url.rstrip('/')}/register", data=data, headers={"Content-Type": "application/json"}, method="POST")
+    headers = {"Content-Type": "application/json"}
+    if os.getenv("ATLAS_API_TOKEN"):
+        headers["Authorization"] = f"Bearer {os.getenv('ATLAS_API_TOKEN')}"
+    req = urllib.request.Request(f"{control_plane_url.rstrip('/')}/register", data=data, headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=10) as resp:
         resp.read()
 

@@ -14,3 +14,4 @@ python3 atlas/scripts/bootstrap_device.py --repo /path/to/Atlas --dest /tmp/atla
 - Uses UUID-derived device IDs.
 - Registration is optional; the script POSTs to `/register` if enabled.
 - Use `--dry-run` to preview without writing.
+- If the control plane has `api_token` set, export `ATLAS_API_TOKEN` before running.

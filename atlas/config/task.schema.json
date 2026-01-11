@@ -3,8 +3,9 @@
   "$id": "atlas.task.schema.json",
   "title": "Atlas Task",
   "type": "object",
-  "required": ["id", "type", "status"],
+  "required": ["schema_version", "id", "type", "status"],
   "properties": {
+    "schema_version": {"type": "string"},
     "id": {"type": "string"},
     "type": {"enum": ["shell", "script"]},
     "status": {"enum": ["queued", "running", "completed", "failed"]},
@@ -12,6 +13,8 @@
     "script_path": {"type": "string"},
     "timeout_sec": {"type": "integer", "minimum": 1},
     "required_tags": {"type": "array", "items": {"type": "string"}},
+    "claimed_by": {"type": "string"},
+    "lease_until": {"type": "string", "format": "date-time"},
     "created_at": {"type": "string", "format": "date-time"},
     "updated_at": {"type": "string", "format": "date-time"},
     "result": {

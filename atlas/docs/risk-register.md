@@ -18,12 +18,14 @@ Source: Perplexity deep-research critique outputs (see `.taskmaster/reports/perp
 - **Impact:** unauthorized device registration, token leakage, supply-chain compromise.
 - **Mitigation:** auth gates, TLS/mTLS, least-privilege policy, signed updates, audit logs.
 - **Owner Tasks:** 12
+ - **Status:** Mitigated in v1 with shared API token; still needs mTLS and rotation.
 
 ## High
 4) **Schema/config evolution without migrations**
 - **Impact:** rollbacks fail, agents incompatible, config drift.
 - **Mitigation:** versioned schemas, migration playbooks, compatibility matrix.
 - **Owner Tasks:** 2, 10, 12
+ - **Status:** Schema versioning added; migration playbook required.
 
 5) **JSONL durability/observability gaps**
 - **Impact:** partial writes, silent corruption, low queryability.

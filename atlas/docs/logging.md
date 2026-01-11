@@ -3,6 +3,7 @@
 ## JSONL Storage
 - Default path: `atlas/logs/ai.jsonl`
 - Append-only with file locking
+- Includes `schema_version` for forward compatibility
 
 ## Query
 ```

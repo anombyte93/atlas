@@ -3,8 +3,9 @@
   "$id": "atlas.log.event.schema.json",
   "title": "Atlas Log Event",
   "type": "object",
-  "required": ["event_type", "timestamp", "device_id", "agent_id"],
+  "required": ["schema_version", "event_type", "timestamp", "device_id", "agent_id"],
   "properties": {
+    "schema_version": {"type": "string"},
     "event_type": {"type": "string"},
     "timestamp": {"type": "string", "format": "date-time"},
     "device_id": {"type": "string"},

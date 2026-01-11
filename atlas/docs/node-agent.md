@@ -14,6 +14,9 @@ go build ./cmd/node-agent
 ./node-agent --config ../../config/agents/local-agent.json --data ./data
 ```
 
+## Auth
+- If `api_token` is set in agent config, requests include `Authorization: Bearer <token>`.
+
 ## Capabilities
 - OS, arch, CPU cores, best-effort memory
 - Tags from config

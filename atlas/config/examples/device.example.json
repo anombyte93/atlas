@@ -1,4 +1,5 @@
 {
+  "schema_version": "1.0.0",
   "id": "dev-12345678",
   "hostname": "atlas-node-1",
   "roles": ["server"],

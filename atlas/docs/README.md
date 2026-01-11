@@ -9,5 +9,6 @@
 - context-graph.md
 - federation.md
 - hardening.md
+- migrations.md
 - cli.md
 - task-execution.md

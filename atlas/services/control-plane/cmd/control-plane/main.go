@@ -18,6 +18,7 @@ type Config struct {
 	ConfigPath   string `json:"config_path"`
 	WorldRepo    string `json:"world_repo_path"`
 	AllowedRoles []string `json:"allowed_roles"`
+	APIToken     string `json:"api_token"`
 }
 
 type Registry struct {
@@ -31,6 +32,7 @@ type Device struct {
 	Roles        []string   `json:"roles"`
 	Capabilities Capability `json:"capabilities"`
 	LastSeen     string     `json:"last_seen"`
+	Status       string     `json:"status,omitempty"`
 }
 
 type Capability struct {
@@ -49,6 +51,8 @@ type Task struct {
 	ScriptPath   string   `json:"script_path,omitempty"`
 	TimeoutSec   int      `json:"timeout_sec"`
 	RequiredTags []string `json:"required_tags,omitempty"`
+	ClaimedBy    string   `json:"claimed_by,omitempty"`
+	LeaseUntil   string   `json:"lease_until,omitempty"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 	Result       *TaskResult `json:"result,omitempty"`
@@ -91,13 +95,13 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) { handleRegister(w, r, registry) })
-	mux.HandleFunc("/heartbeat", func(w http.ResponseWriter, r *http.Request) { handleHeartbeat(w, r, registry) })
+	mux.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) { handleRegister(w, r, registry, cfg) })
+	mux.HandleFunc("/heartbeat", func(w http.ResponseWriter, r *http.Request) { handleHeartbeat(w, r, registry, cfg) })
 	mux.HandleFunc("/devices", func(w http.ResponseWriter, r *http.Request) { handleListDevices(w, r, registry) })
-	mux.HandleFunc("/tasks/submit", func(w http.ResponseWriter, r *http.Request) { handleSubmitTask(w, r, store) })
-	mux.HandleFunc("/tasks/claim", func(w http.ResponseWriter, r *http.Request) { handleClaimTask(w, r, store) })
-	mux.HandleFunc("/tasks/report", func(w http.ResponseWriter, r *http.Request) { handleReportTask(w, r, store) })
-	mux.HandleFunc("/tasks/list", func(w http.ResponseWriter, r *http.Request) { handleListTasks(w, r, store) })
+	mux.HandleFunc("/tasks/submit", func(w http.ResponseWriter, r *http.Request) { handleSubmitTask(w, r, store, cfg) })
+	mux.HandleFunc("/tasks/claim", func(w http.ResponseWriter, r *http.Request) { handleClaimTask(w, r, store, cfg) })
+	mux.HandleFunc("/tasks/report", func(w http.ResponseWriter, r *http.Request) { handleReportTask(w, r, store, cfg) })
+	mux.HandleFunc("/tasks/list", func(w http.ResponseWriter, r *http.Request) { handleListTasks(w, r, store, cfg) })
 
 	log.Printf("control-plane listening on %s", cfg.ListenAddr)
 	log.Fatal(http.ListenAndServe(cfg.ListenAddr, loggingMiddleware(mux)))
@@ -134,13 +138,21 @@ func watchConfig(path string, onChange func()) {
 	}
 }
 
-func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry) {
+func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	var payload Device
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if payload.DeviceID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -151,9 +163,13 @@ func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry) {
+func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	var payload struct {
@@ -179,18 +195,27 @@ func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registr
 	defer registry.mu.RUnlock()
 	list := make([]*Device, 0, len(registry.devices))
 	for _, d := range registry.devices {
+		d.Status = computeStatus(d.LastSeen)
 		list = append(list, d)
 	}
 	_ = json.NewEncoder(w).Encode(list)
 }
 
-func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore) {
+func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	var t Task
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if t.ID == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -199,19 +224,29 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore) 
 	t.CreatedAt = now
 	t.UpdatedAt = now
 	store.mu.Lock()
+	if _, exists := store.tasks[t.ID]; exists {
+		store.mu.Unlock()
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
 	store.tasks[t.ID] = &t
 	store.mu.Unlock()
 	store.appendEvent(t)
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore) {
+func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	var req struct {
 		Tags []string `json:"tags"`
+		AgentID string `json:"agent_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -221,11 +256,20 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore) {
 	defer store.mu.Unlock()
 	for _, t := range store.tasks {
 		if t.Status != "queued" {
+			if t.Status == "running" && leaseExpired(t.LeaseUntil) {
+				t.Status = "queued"
+			} else {
+				continue
+			}
+		}
+		if t.Status != "queued" {
 			continue
 		}
 		if matchesTags(req.Tags, t.RequiredTags) {
 			t.Status = "running"
 			t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+			t.ClaimedBy = req.AgentID
+			t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
 			store.appendEvent(*t)
 			_ = json.NewEncoder(w).Encode(t)
 			return
@@ -234,9 +278,13 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore) {
+func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	var report Task
@@ -255,7 +303,11 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore) 
 	w.WriteHeader(http.StatusOK)
 }
 
-func handleListTasks(w http.ResponseWriter, r *http.Request, store *TaskStore) {
+func handleListTasks(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
+	if !checkAuth(r, cfg.APIToken) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 	list := make([]*Task, 0, len(store.tasks))
@@ -316,6 +368,39 @@ func (s *TaskStore) loadFromLog() {
 		}
 		s.tasks[t.ID] = &t
 	}
+}
+
+func checkAuth(r *http.Request, token string) bool {
+	if token == "" {
+		return true
+	}
+	auth := r.Header.Get("Authorization")
+	return auth == "Bearer "+token
+}
+
+func leaseExpired(leaseUntil string) bool {
+	if leaseUntil == "" {
+		return false
+	}
+	t, err := time.Parse(time.RFC3339, leaseUntil)
+	if err != nil {
+		return true
+	}
+	return time.Now().UTC().After(t)
+}
+
+func computeStatus(lastSeen string) string {
+	if lastSeen == "" {
+		return "unknown"
+	}
+	t, err := time.Parse(time.RFC3339, lastSeen)
+	if err != nil {
+		return "unknown"
+	}
+	if time.Since(t) <= 60*time.Second {
+		return "online"
+	}
+	return "offline"
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

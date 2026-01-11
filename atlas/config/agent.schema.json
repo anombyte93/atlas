@@ -3,13 +3,17 @@
   "$id": "atlas.agent.schema.json",
   "title": "Atlas Agent",
   "type": "object",
-  "required": ["id", "device_id", "version", "control_plane_url", "heartbeat_interval_sec"],
+  "required": ["schema_version", "id", "device_id", "version", "control_plane_url", "heartbeat_interval_sec"],
   "properties": {
+    "schema_version": {"type": "string"},
     "id": {"type": "string", "minLength": 8},
     "device_id": {"type": "string", "minLength": 8},
     "version": {"type": "string"},
     "control_plane_url": {"type": "string", "format": "uri"},
+    "api_token": {"type": "string"},
     "heartbeat_interval_sec": {"type": "integer", "minimum": 5},
+    "task_poll_interval_sec": {"type": "integer", "minimum": 5},
+    "world_repo_path": {"type": "string"},
     "permissions": {
       "type": "object",
       "properties": {

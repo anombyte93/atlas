@@ -3,8 +3,9 @@
   "$id": "atlas.logging.schema.json",
   "title": "Atlas AI Log",
   "type": "object",
-  "required": ["event_type", "timestamp", "device_id", "agent_id", "status"],
+  "required": ["schema_version", "event_type", "timestamp", "device_id", "agent_id", "status"],
   "properties": {
+    "schema_version": {"type": "string"},
     "event_type": {"type": "string"},
     "timestamp": {"type": "string"},
     "device_id": {"type": "string"},

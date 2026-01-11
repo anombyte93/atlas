@@ -7,14 +7,19 @@ import time
 import urllib.request
 
 
-def http_get(url):
-    with urllib.request.urlopen(url, timeout=5) as resp:
+def http_get(url, token=None):
+    req = urllib.request.Request(url, method="GET")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req, timeout=5) as resp:
         return resp.read().decode("utf-8")
 
 
-def http_post(url, payload):
+def http_post(url, payload, token=None):
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
     with urllib.request.urlopen(req, timeout=5) as resp:
         return resp.read().decode("utf-8")
 
@@ -28,7 +33,7 @@ def cmd_init(_args):
 def cmd_status(args):
     try:
         http_get(args.control_plane.rstrip("/") + "/health")
-        devices = http_get(args.control_plane.rstrip("/") + "/devices")
+        devices = http_get(args.control_plane.rstrip("/") + "/devices", args.token)
         print("control-plane: ok")
         print("devices:")
         print(devices)
@@ -37,7 +42,7 @@ def cmd_status(args):
 
 
 def cmd_devices(args):
-    devices = http_get(args.control_plane.rstrip("/") + "/devices")
+    devices = http_get(args.control_plane.rstrip("/") + "/devices", args.token)
     print(devices)
 
 
@@ -65,10 +70,12 @@ def main():
 
     p_status = sub.add_parser("status")
     p_status.add_argument("--control-plane", default="http://localhost:8080")
+    p_status.add_argument("--token", default=os.getenv("ATLAS_API_TOKEN", ""))
     p_status.set_defaults(func=cmd_status)
 
     p_devices = sub.add_parser("devices")
     p_devices.add_argument("--control-plane", default="http://localhost:8080")
+    p_devices.add_argument("--token", default=os.getenv("ATLAS_API_TOKEN", ""))
     p_devices.set_defaults(func=cmd_devices)
 
     p_logs = sub.add_parser("logs")

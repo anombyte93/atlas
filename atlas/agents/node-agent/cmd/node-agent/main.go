@@ -21,6 +21,7 @@ type AgentConfig struct {
 	DeviceID          string   `json:"device_id"`
 	Version           string   `json:"version"`
 	ControlPlaneURL   string   `json:"control_plane_url"`
+	APIToken          string   `json:"api_token"`
 	HeartbeatInterval int      `json:"heartbeat_interval_sec"`
 	TaskPollInterval  int      `json:"task_poll_interval_sec"`
 	WorldRepoPath     string   `json:"world_repo_path"`
@@ -62,6 +63,7 @@ func main() {
 	if err != nil {
 		fatal("config load failed", err)
 	}
+	currentToken = cfg.APIToken
 	deviceID := cfg.DeviceID
 	if deviceID == "" {
 		deviceID = loadOrCreateDeviceID(*dataDir)
@@ -201,19 +203,19 @@ type TaskResult struct {
 }
 
 func pollAndExecute(cfg AgentConfig) {
-	reqBody := map[string]any{\"tags\": cfg.Tags}
-	resp, err := postJSONGet(cfg.ControlPlaneURL+\"/tasks/claim\", reqBody)
+	reqBody := map[string]any{"tags": cfg.Tags, "agent_id": cfg.ID}
+	resp, err := postJSONGet(cfg.ControlPlaneURL+"/tasks/claim", reqBody, cfg.APIToken)
 	if err != nil || resp == nil {
 		return
 	}
 	var task Task
-	if err := json.Unmarshal(resp, &task); err != nil || task.ID == \"\" {
+	if err := json.Unmarshal(resp, &task); err != nil || task.ID == "" {
 		return
 	}
 	result, status := executeTask(cfg, task)
 	task.Status = status
 	task.Result = result
-	_, _ = postJSONGet(cfg.ControlPlaneURL+\"/tasks/report\", task)
+	_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
 }
 
 func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
@@ -255,6 +257,9 @@ func postJSON(url string, payload any) error {
 	b, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", url, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
+	if currentToken != "" {
+		req.Header.Set("Authorization", "Bearer "+currentToken)
+	}
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -265,10 +270,15 @@ func postJSON(url string, payload any) error {
 	return nil
 }
 
-func postJSONGet(url string, payload any) ([]byte, error) {
+var currentToken string
+
+func postJSONGet(url string, payload any, token string) ([]byte, error) {
 	b, _ := json.Marshal(payload)
-	req, _ := http.NewRequest(\"POST\", url, bytes.NewReader(b))
-	req.Header.Set(\"Content-Type\", \"application/json\")
+	req, _ := http.NewRequest("POST", url, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {

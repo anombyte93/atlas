@@ -14,6 +14,9 @@ go build ./cmd/control-plane
 ./control-plane
 ```
 
+## Auth
+- If `api_token` is set in `atlas/config/control-plane.json`, all write endpoints require `Authorization: Bearer <token>`.
+
 ## Endpoints
 - `POST /register`
 - `POST /heartbeat`

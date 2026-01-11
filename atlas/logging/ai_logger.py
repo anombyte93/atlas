@@ -13,6 +13,7 @@ class AILogWrapper:
 
     def log_event(self, event_type, payload, status="ok", model=None, tokens=0, latency_ms=0, error=None, context_refs=None):
         entry = {
+            "schema_version": "1.0.0",
             "event_type": event_type,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "device_id": self.device_id,

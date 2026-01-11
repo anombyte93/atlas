@@ -3,8 +3,9 @@
   "$id": "atlas.service.schema.json",
   "title": "Atlas Service",
   "type": "object",
-  "required": ["id", "name", "endpoints"],
+  "required": ["schema_version", "id", "name", "endpoints"],
   "properties": {
+    "schema_version": {"type": "string"},
     "id": {"type": "string"},
     "name": {"type": "string"},
     "endpoints": {
