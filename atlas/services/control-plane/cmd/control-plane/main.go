@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -67,6 +69,7 @@ type Task struct {
 	Status        string      `json:"status"`
 	Command       string      `json:"command,omitempty"`
 	ScriptPath    string      `json:"script_path,omitempty"`
+	ContentHash   string      `json:"content_hash,omitempty"`
 	TimeoutSec    int         `json:"timeout_sec"`
 	RequiredTags  []string    `json:"required_tags,omitempty"`
 	ClaimedBy     string      `json:"claimed_by,omitempty"`
@@ -76,6 +79,7 @@ type Task struct {
 	MaxAttempts   int         `json:"max_attempts,omitempty"`
 	LeaseExpiries int         `json:"lease_expiries,omitempty"`
 	NextEligible  string      `json:"next_eligible_at,omitempty"`
+	LeaderToken   int64       `json:"leader_token,omitempty"`
 	CreatedAt     string      `json:"created_at"`
 	UpdatedAt     string      `json:"updated_at"`
 	Result        *TaskResult `json:"result,omitempty"`
@@ -350,11 +354,15 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		writeError(w, http.StatusBadRequest, "validation", "script_path required for script")
 		return
 	}
+	t.ContentHash = taskContentHash(t)
 	if t.Status != "" && t.Status != string(StateQueued) {
 		writeError(w, http.StatusBadRequest, "validation", "status must be queued or empty on submit")
 		return
 	}
 	t.Status = string(StateQueued)
+	if leaderEnabled {
+		t.LeaderToken = leaderToken
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	t.CreatedAt = now
 	t.UpdatedAt = now
@@ -421,13 +429,11 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 				t.LeaseUntil = ""
 				store.queued[t.ID] = struct{}{}
 				t.LeaseExpiries += 1
-				if t.LeaseExpiries%3 == 0 {
-					t.Attempts += 1
-					t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
-					if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
-						t.Status = string(StateFailed)
-						delete(store.queued, t.ID)
-					}
+				t.Attempts += 1
+				t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
+				if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
+					t.Status = string(StateFailed)
+					delete(store.queued, t.ID)
 				}
 			} else {
 				continue
@@ -499,6 +505,11 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
 		return
 	}
+	if report.ContentHash == "" || report.ContentHash != t.ContentHash {
+		store.mu.Unlock()
+		writeError(w, http.StatusConflict, "content_mismatch", "task content hash mismatch")
+		return
+	}
 	if leaseExpired(t.LeaseUntil) {
 		store.mu.Unlock()
 		writeError(w, http.StatusConflict, "lease_expired", "task lease expired")
@@ -534,6 +545,9 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	}
 	t.Result = report.Result
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	if leaderEnabled {
+		t.LeaderToken = leaderToken
+	}
 	if report.Status == string(StateFailed) {
 		t.Attempts += 1
 		t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
@@ -608,6 +622,9 @@ func handleRenewTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 	}
 	t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	if leaderEnabled {
+		t.LeaderToken = leaderToken
+	}
 	store.persistTask(*t)
 	store.audit.Log("task_renew", map[string]any{"task_id": t.ID, "agent_id": req.ClaimedBy})
 	store.mu.Unlock()
@@ -677,10 +694,12 @@ func initDB(path string) *sql.DB {
 		lease_expiries INTEGER DEFAULT 0,
 		claimed_by TEXT,
 		lease_until TEXT,
-		next_eligible TEXT
+		next_eligible TEXT,
+		leader_token INTEGER DEFAULT 0
 	)`)
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN lease_expiries INTEGER")
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN next_eligible TEXT")
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN leader_token INTEGER")
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS devices (
 		id TEXT PRIMARY KEY,
 		json TEXT NOT NULL,
@@ -700,12 +719,20 @@ func (s *TaskStore) persistTask(t Task) {
 	if s.db == nil {
 		return
 	}
+	if leaderEnabled {
+		var existing int64
+		row := s.db.QueryRow("SELECT leader_token FROM tasks WHERE id = ?", t.ID)
+		_ = row.Scan(&existing)
+		if existing > 0 && existing > t.LeaderToken {
+			return
+		}
+	}
 	b, _ := json.Marshal(t)
-	_, _ = s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, lease_expiries, claimed_by, lease_until, next_eligible)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	_, _ = s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, lease_expiries, claimed_by, lease_until, next_eligible, leader_token)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET json=excluded.json, status=excluded.status, updated_at=excluded.updated_at,
-			attempts=excluded.attempts, lease_expiries=excluded.lease_expiries, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until, next_eligible=excluded.next_eligible`,
-		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.LeaseExpiries, t.ClaimedBy, t.LeaseUntil, t.NextEligible)
+			attempts=excluded.attempts, lease_expiries=excluded.lease_expiries, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until, next_eligible=excluded.next_eligible, leader_token=excluded.leader_token`,
+		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.LeaseExpiries, t.ClaimedBy, t.LeaseUntil, t.NextEligible, t.LeaderToken)
 	s.writeCount += 1
 	if s.writeCount%100 == 0 {
 		_, _ = s.db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
@@ -742,6 +769,21 @@ func (s *TaskStore) loadFromDB() {
 				t.LeaseUntil = ""
 				if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
 					t.Status = string(StateFailed)
+				}
+			}
+		}
+		if t.Status == string(StateRunning) && !leaseExpired(t.LeaseUntil) {
+			// reconcile long-running stale tasks (safety for clock skew / missed renewals)
+			if t.UpdatedAt != "" {
+				if ts, err := time.Parse(time.RFC3339, t.UpdatedAt); err == nil {
+					if time.Since(ts) > 10*time.Minute {
+						if next, ok := transition(StateRunning, EventLeaseExpire); ok {
+							t.Status = string(next)
+							t.ClaimedBy = ""
+							t.ClaimToken = ""
+							t.LeaseUntil = ""
+						}
+					}
 				}
 			}
 		}
@@ -955,6 +997,23 @@ func randToken() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+func taskContentHash(t Task) string {
+	h := sha256.New()
+	h.Write([]byte(t.Type))
+	h.Write([]byte("|"))
+	h.Write([]byte(t.Command))
+	h.Write([]byte("|"))
+	h.Write([]byte(t.ScriptPath))
+	h.Write([]byte("|"))
+	h.Write([]byte(strconv.Itoa(t.TimeoutSec)))
+	h.Write([]byte("|"))
+	for _, tag := range t.RequiredTags {
+		h.Write([]byte(tag))
+		h.Write([]byte(","))
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func getHostname() string {

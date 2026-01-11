@@ -227,6 +227,9 @@ func pollAndExecute(cfg AgentConfig) {
 	if task.SchemaVersion == "" {
 		task.SchemaVersion = "1.0.0"
 	}
+	if task.ClaimToken == "" {
+		return
+	}
 	result, status := executeTask(cfg, task)
 	task.Status = status
 	task.Result = result
