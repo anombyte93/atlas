@@ -29,6 +29,8 @@ type Config struct {
 	CACertPath                 string   `json:"ca_cert_path"`
 	DeviceTTLHours             int      `json:"device_ttl_hours"`
 	DevicePruneIntervalMinutes int      `json:"device_prune_interval_minutes"`
+	LeaderLeaseEnabled         bool     `json:"leader_lease_enabled"`
+	LeaderID                   string   `json:"leader_id"`
 }
 
 type Registry struct {
@@ -83,6 +85,7 @@ type TaskResult struct {
 type TaskStore struct {
 	mu         sync.RWMutex
 	tasks      map[string]*Task
+	queued     map[string]struct{}
 	logPath    string
 	db         *sql.DB
 	audit      *AuditLogger
@@ -116,7 +119,18 @@ func main() {
 	deviceStore = &DeviceStore{db: db}
 	audit := &AuditLogger{logPath: filepath.Join(cfg.DataDir, "audit.jsonl")}
 	auditLogger = audit
+	if cfg.LeaderLeaseEnabled {
+		if cfg.LeaderID == "" {
+			cfg.LeaderID = hostname()
+		}
+		ok := acquireLeaderLease(db, cfg.LeaderID)
+		if !ok {
+			log.Fatal("failed to acquire leader lease")
+		}
+		go renewLeaderLease(db, cfg.LeaderID)
+	}
 	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl"), db: db, audit: audit}
+	store.queued = map[string]struct{}{}
 	store.loadFromLog()
 	store.loadFromDB()
 	loadDevicesFromDB(registry)
@@ -318,6 +332,9 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		return
 	}
 	store.tasks[t.ID] = &t
+	if t.Status == "queued" {
+		store.queued[t.ID] = struct{}{}
+	}
 	store.mu.Unlock()
 	store.appendEvent(t)
 	store.persistTask(t)
@@ -350,7 +367,12 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	for _, t := range store.tasks {
+	for id := range store.queued {
+		t := store.tasks[id]
+		if t == nil {
+			delete(store.queued, id)
+			continue
+		}
 		if t.Status != "queued" {
 			if t.Status == "running" && leaseExpired(t.LeaseUntil) {
 				t.Status = "queued"
@@ -386,6 +408,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			store.appendEvent(*t)
 			store.persistTask(*t)
 			store.audit.Log("task_claim", map[string]any{"task_id": t.ID, "agent_id": req.AgentID})
+			delete(store.queued, t.ID)
 			_ = json.NewEncoder(w).Encode(t)
 			return
 		}
@@ -457,6 +480,9 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	store.appendEvent(*t)
 	store.persistTask(*t)
 	store.audit.Log("task_report", map[string]any{"task_id": t.ID, "status": report.Status, "agent_id": report.ClaimedBy})
+	if t.Status == "queued" {
+		store.queued[t.ID] = struct{}{}
+	}
 	store.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
@@ -534,6 +560,11 @@ func initDB(path string) *sql.DB {
 		last_seen TEXT
 	)`)
 	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS devices_last_seen_idx ON devices(last_seen)")
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS leader_lease (
+		id TEXT PRIMARY KEY,
+		holder TEXT NOT NULL,
+		expires_at TEXT NOT NULL
+	)`)
 	return db
 }
 
@@ -575,6 +606,9 @@ func (s *TaskStore) loadFromDB() {
 			continue
 		}
 		s.tasks[t.ID] = &t
+		if t.Status == "queued" {
+			s.queued[t.ID] = struct{}{}
+		}
 	}
 }
 
@@ -672,6 +706,9 @@ func (s *TaskStore) loadFromLog() {
 			continue
 		}
 		s.tasks[t.ID] = &t
+		if t.Status == "queued" {
+			s.queued[t.ID] = struct{}{}
+		}
 	}
 }
 
@@ -762,6 +799,38 @@ func rotateIfNeeded(path string) {
 	}
 	ts := time.Now().UTC().Format("20060102-150405")
 	_ = os.Rename(path, path+"."+ts)
+}
+
+func acquireLeaderLease(db *sql.DB, leaderID string) bool {
+	if db == nil {
+		return false
+	}
+	expires := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
+	_, _ = db.Exec("INSERT OR IGNORE INTO leader_lease (id, holder, expires_at) VALUES ('primary', ?, ?)", leaderID, expires)
+	var holder string
+	var exp string
+	row := db.QueryRow("SELECT holder, expires_at FROM leader_lease WHERE id='primary'")
+	if err := row.Scan(&holder, &exp); err != nil {
+		return false
+	}
+	if holder == leaderID {
+		return true
+	}
+	t, err := time.Parse(time.RFC3339, exp)
+	if err != nil || time.Now().UTC().After(t) {
+		_, _ = db.Exec("UPDATE leader_lease SET holder=?, expires_at=? WHERE id='primary'", leaderID, expires)
+		return true
+	}
+	return false
+}
+
+func renewLeaderLease(db *sql.DB, leaderID string) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		expires := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
+		_, _ = db.Exec("UPDATE leader_lease SET expires_at=? WHERE id='primary' AND holder=?", expires, leaderID)
+	}
 }
 
 func logAuthFail(r *http.Request) {

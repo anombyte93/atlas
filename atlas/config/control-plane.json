@@ -9,5 +9,7 @@
   "tls_key_path": "",
   "ca_cert_path": "",
   "device_ttl_hours": 0,
-  "device_prune_interval_minutes": 60
+  "device_prune_interval_minutes": 60,
+  "leader_lease_enabled": false,
+  "leader_id": ""
 }

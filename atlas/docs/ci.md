@@ -6,3 +6,6 @@ Run local CI script:
 ```
 
 This builds agent + control plane and runs the smoke test.
+
+## GitHub Actions
+CI runs on push and PR via `.github/workflows/ci.yml`.
