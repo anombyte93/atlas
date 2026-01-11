@@ -18,3 +18,4 @@
 - ha-roadmap.md
 - llm-providers.md
 - provider-policy.md
+- releases/v1-alpha.md
