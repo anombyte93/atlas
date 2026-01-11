@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.task.schema.json",
+  "title": "Atlas Task",
+  "type": "object",
+  "required": ["id", "type", "status"],
+  "properties": {
+    "id": {"type": "string"},
+    "type": {"enum": ["shell", "script"]},
+    "status": {"enum": ["queued", "running", "completed", "failed"]},
+    "command": {"type": "string"},
+    "script_path": {"type": "string"},
+    "timeout_sec": {"type": "integer", "minimum": 1},
+    "required_tags": {"type": "array", "items": {"type": "string"}},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "result": {
+      "type": "object",
+      "properties": {
+        "exit_code": {"type": "integer"},
+        "stdout": {"type": "string"},
+        "stderr": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,109 @@
+{
+	"meta": {
+		"generatedAt": "2026-01-10T23:22:42.591Z",
+		"tasksAnalyzed": 12,
+		"totalTasks": 12,
+		"analysisCount": 12,
+		"thresholdScore": 5,
+		"projectName": "Task Master",
+		"usedResearch": true
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Clarify Atlas OS implementation choices and workflow constraints",
+			"complexityScore": 3,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down into: 1) Research and document node agent language options (Go vs Python trade-offs for cross-platform support, resource efficiency, and ecosystem), 2) Define control plane hosting model architecture (centralized vs distributed, scaling considerations), 3) Specify logging storage backend decision matrix (JSONL vs database with performance/maintenance analysis), 4) Define minimum device support matrix and initial device role taxonomy",
+			"reasoning": "Low complexity as it's primarily documentation and decision-making. No code implementation yet, but requires research and cross-referencing with PRD. Recommended subtasks ensure systematic coverage of each decision area without overwhelming scope."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Scaffold Atlas world repo structure and config schemas",
+			"complexityScore": 4,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into: 1) Create directory structure with proper permissions and .gitignore, 2) Define device schema (YAML/JSON) with required fields (id, capabilities, roles), 3) Define agent schema (config, permissions, resources), 4) Define service schema (endpoints, dependencies, health checks), 5) Define policy schema (rules, constraints, scope), 6) Create logging event schema with metadata fields for world-state tracking",
+			"reasoning": "Moderate complexity involving filesystem operations and schema design. No complex logic, but schemas must be forward-compatible and well-validated. Breaking into directory creation + individual schema files ensures each gets proper attention and testing."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Bootstrap script for new devices",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break into: 1) Design script interface and CLI arguments (repo URL, device type, config overrides), 2) Implement repo clone and world repo initialization logic, 3) Build per-device config override system (template rendering or file merging), 4) Create device ID generation and registration logic with collision handling, 5) Add comprehensive usage documentation and error handling for common failure scenarios",
+			"reasoning": "Medium complexity involving system interaction, git operations, and error handling. Must handle edge cases (network failures, existing configs, permission issues). Script should be idempotent and well-documented for diverse environments."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Node agent skeleton (per-device daemon/CLI)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Expand into: 1) Set up project structure and dependency management for chosen language, 2) Implement device ID generation and persistence (file-based, collision-resistant), 3) Build capability discovery system (OS detection, CPU info, GPU detection via system APIs), 4) Create config loading and validation from world repo schemas, 5) Implement heartbeat loop with exponential backoff and error handling, 6) Build control plane communication interface (HTTP/gRPC client), 7) Add read-only filesystem enforcement logic, 8) Create comprehensive logging and status reporting",
+			"reasoning": "High complexity involving cross-platform system programming, daemon lifecycle management, and network communication. Must be robust to failures, handle diverse hardware, and maintain security boundaries. Testing across platforms increases effort significantly."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Control plane registry service (single-node MVP)",
+			"complexityScore": 7,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Break into: 1) Design API endpoints and data models (register, heartbeat, list devices, get device), 2) Set up web server framework and routing with middleware for logging/auth, 3) Implement in-memory registry with thread-safe operations, 4) Build config loading from world repo with hot-reload on file changes, 5) Create device registration logic with validation and duplicate handling, 6) Implement heartbeat processing and device health tracking, 7) Add comprehensive error handling and API documentation",
+			"reasoning": "High complexity for an MVP involving HTTP server, concurrent request handling, state management, and file watching. Must balance simplicity with extensibility for future distributed features. Hot-reload adds complexity but is critical for operator experience."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Task execution API (v1 minimal)",
+			"complexityScore": 6,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Expand into: 1) Design task schema and execution flow (submitted → queued → running → completed/failed), 2) Implement basic scheduler with capability tag matching logic, 3) Create task queue and state management, 4) Build shell command execution with timeout and output capture, 5) Implement script-from-repo fetching and validation, 6) Add result reporting and error handling with proper cleanup",
+			"reasoning": "Medium-high complexity introducing async task processing, remote execution, and scheduling logic. Security concerns (command injection, resource limits) require careful handling. Simple scheduler keeps scope manageable but must be extensible."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "AI logging wrapper with metadata capture",
+			"complexityScore": 5,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break into: 1) Design comprehensive log schema (model, context_refs, device_id, agent_id, world_commit, branch, timestamp, tokens, etc.), 2) Create provider-agnostic wrapper interface for common AI SDK patterns, 3) Implement context capture (git state, device info, agent config) at call time, 4) Add middleware/interceptor pattern for automatic logging with minimal code changes, 5) Create unit tests for metadata extraction and log formatting",
+			"reasoning": "Medium complexity requiring careful API design to be truly provider-agnostic while capturing rich metadata. Must balance comprehensive logging with performance overhead and ease of integration. Testing across multiple AI providers increases validation effort."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Structured log storage (JSONL + query helpers)",
+			"complexityScore": 4,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand into: 1) Design JSONL file format and rotation strategy (size/time-based), 2) Implement append-only log writer with proper file locking and atomic writes, 3) Create query CLI with filters (device, agent, time range, model), 4) Add basic aggregation helpers (count by agent, latency stats, error rates)",
+			"reasoning": "Moderate but straightforward complexity. JSONL is simple to implement; main challenges are concurrent writes and query performance at scale. Keeping it minimal for v1 avoids database complexity while proving the concept. File locking and rotation are critical for reliability."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Atlas CLI commands for status, devices, logs",
+			"complexityScore": 5,
+			"recommendedSubtasks": 6,
+			"expansionPrompt": "Break into: 1) Design CLI interface and command structure (using Cobra/clik or similar framework), 2) Implement 'atlas init' bootstrap command with interactive setup, 3) Create 'atlas status' showing registry health and device counts, 4) Build 'atlas devices' with filtering and detailed views, 5) Implement 'atlas logs tail' with real-time streaming and filters, 6) Add comprehensive help text, examples, and shell completion",
+			"reasoning": "Medium complexity involving CLI framework setup, multiple command implementations, and integration with both control plane and log storage. Good UX matters for adoption. Real-time log tailing adds complexity with proper signal handling and formatting."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Multi-device federation and config sync",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand into: 1) Design per-device config overlay system (Git branches, chezmoi templates, or custom merging), 2) Implement config sync mechanism (pull-based polling, git hooks, or push notifications), 3) Create device registration flow with capability auto-discovery and role assignment, 4) Build conflict detection and resolution for concurrent config changes, 5) Document multi-device setup walkthrough with troubleshooting guide",
+			"reasoning": "Medium-high complexity introducing distributed state management. Config sync is deceptively hard—must handle conflicts, partial failures, and eventual consistency. Choosing between git-based and custom sync affects architecture significantly. Using existing tools (chezmoi) reduces complexity but adds dependency."
+		},
+		{
+			"taskId": 11,
+			"taskTitle": "Context/decision graph prototype",
+			"complexityScore": 6,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Break into: 1) Design graph data model (nodes: runs, files, devices, models; edges: used-in, produced-by, preceded-by), 2) Implement log parser to extract graph entities and relationships from JSONL logs, 3) Choose graph representation (adjacency list, networkx, or custom) and storage format, 4) Build graph query API (what context was used for X? what did file Y produce?), 5) Create visualization export (graphviz DOT, JSON, or simple ASCII)",
+			"reasoning": "Medium-high complexity requiring data modeling, graph algorithms, and potentially large-scale data processing. Prototype scope limits complexity but must design for scalability. Query language design is tricky—balance expressiveness with simplicity. Visualization helps validate correctness."
+		},
+		{
+			"taskId": 12,
+			"taskTitle": "Hardening and device bootstrap docs",
+			"complexityScore": 3,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Expand into: 1) Document key management strategy (generation, storage, rotation, revocation), 2) Create secure registration checklist (TLS, authentication, device attestation), 3) Write failure recovery runbooks (device replacement, data recovery, rollback procedures), 4) Document security hardening steps (firewall rules, least privilege, audit logging), 5) Create troubleshooting guide with common issues and diagnostic commands",
+			"reasoning": "Low technical complexity as it's documentation-focused, but high importance for production readiness. Requires thinking through security edge cases and operational scenarios. Good docs prevent future failures. Subtasks ensure comprehensive coverage of all critical operational concerns."
+		}
+	]
+}

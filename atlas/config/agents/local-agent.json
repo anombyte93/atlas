@@ -1,0 +1,14 @@
+{
+  "id": "agent-local",
+  "device_id": "",
+  "version": "0.1.0",
+  "control_plane_url": "http://localhost:8080",
+  "heartbeat_interval_sec": 15,
+  "task_poll_interval_sec": 20,
+  "world_repo_path": "../../",
+  "permissions": {
+    "read_only": true,
+    "allowed_paths": ["/var/log", "/etc"]
+  },
+  "tags": ["role:server", "os:linux"]
+}

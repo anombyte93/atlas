@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.device.schema.json",
+  "title": "Atlas Device",
+  "type": "object",
+  "required": ["id", "hostname", "roles", "capabilities"],
+  "properties": {
+    "id": {"type": "string", "minLength": 8},
+    "hostname": {"type": "string"},
+    "roles": {
+      "type": "array",
+      "items": {"enum": ["server", "network_device", "workstation", "container_host", "iot_embedded"]},
+      "minItems": 1
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "os": {"type": "string"},
+        "arch": {"type": "string"},
+        "cpu_cores": {"type": "integer", "minimum": 1},
+        "memory_mb": {"type": "integer", "minimum": 128},
+        "gpu": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["os", "arch", "cpu_cores", "memory_mb"]
+    },
+    "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

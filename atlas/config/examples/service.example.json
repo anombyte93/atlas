@@ -1,0 +1,11 @@
+{
+  "id": "registry",
+  "name": "Atlas Registry",
+  "endpoints": [
+    {"url": "http://localhost:8080", "protocol": "http"}
+  ],
+  "dependencies": [],
+  "health_checks": [
+    {"type": "http", "interval_sec": 10, "target": "http://localhost:8080/health"}
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.policy.schema.json",
+  "title": "Atlas Policy",
+  "type": "object",
+  "required": ["id", "type", "scope", "rules"],
+  "properties": {
+    "id": {"type": "string"},
+    "type": {"enum": ["rbac", "abac", "constraint", "safety"]},
+    "scope": {"type": "string"},
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "effect": {"enum": ["allow", "deny"]},
+          "action": {"type": "string"},
+          "resource": {"type": "string"},
+          "conditions": {"type": "object", "additionalProperties": true}
+        },
+        "required": ["effect", "action", "resource"],
+        "additionalProperties": false
+      }
+    },
+    "constraints": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

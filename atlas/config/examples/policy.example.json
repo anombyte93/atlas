@@ -1,0 +1,12 @@
+{
+  "id": "policy-readonly",
+  "type": "rbac",
+  "scope": "agents",
+  "rules": [
+    {"effect": "allow", "action": "read", "resource": "logs"},
+    {"effect": "deny", "action": "write", "resource": "filesystem"}
+  ],
+  "constraints": {
+    "max_task_runtime_sec": 900
+  }
+}

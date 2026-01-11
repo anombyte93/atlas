@@ -1,0 +1,17 @@
+{
+  "id": "dev-12345678",
+  "hostname": "atlas-node-1",
+  "roles": ["server"],
+  "capabilities": {
+    "os": "linux",
+    "arch": "amd64",
+    "cpu_cores": 8,
+    "memory_mb": 32768,
+    "tags": ["gpu:none", "region:local"]
+  },
+  "labels": {
+    "owner": "atlas",
+    "env": "dev"
+  },
+  "created_at": "2026-01-11T00:00:00Z"
+}

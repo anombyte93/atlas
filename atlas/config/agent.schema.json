@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.agent.schema.json",
+  "title": "Atlas Agent",
+  "type": "object",
+  "required": ["id", "device_id", "version", "control_plane_url", "heartbeat_interval_sec"],
+  "properties": {
+    "id": {"type": "string", "minLength": 8},
+    "device_id": {"type": "string", "minLength": 8},
+    "version": {"type": "string"},
+    "control_plane_url": {"type": "string", "format": "uri"},
+    "heartbeat_interval_sec": {"type": "integer", "minimum": 5},
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "read_only": {"type": "boolean"},
+        "allowed_paths": {"type": "array", "items": {"type": "string"}}
+      },
+      "required": ["read_only"]
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "cpu_limit": {"type": "number", "minimum": 0},
+        "memory_limit_mb": {"type": "integer", "minimum": 128}
+      }
+    },
+    "tags": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

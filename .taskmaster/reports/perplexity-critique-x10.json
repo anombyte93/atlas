@@ -1,0 +1,42 @@
+[
+  {
+    "prompt": "Act as a hostile senior engineer. List critical architectural flaws and edge cases in a distributed autonomous agent system coordinating node + control plane. Focus on single-process control plane risks.",
+    "error": "Remote end closed connection without response"
+  },
+  {
+    "prompt": "Critique a Go-based agent and monolithic control plane architecture; highlight failure modes, scaling limits, and maintainability risks. Provide mitigations.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Enumerate data durability and observability gaps for JSONL logging with optional SQLite ingestion; include edge cases and operational hazards.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Identify security and multi-tenant risks for an autonomous agent system operating across Linux/Windows targets; include least-privilege and update pipeline flaws.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "List shortcomings in task orchestration with no message queue; focus on recovery, idempotency, and state corruption risks.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Find change-management and git workflow flaws for a fast-moving monorepo with Taskmaster-generated tasks; suggest stricter policies.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Assess test strategy gaps for cross-platform agent (Linux/Windows) and network device roles; highlight missing coverage.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Critique dependency management and release versioning for an agent + control plane stack; identify edge cases.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "List risks in configuration and schema evolution (tasks, events, state) with no migrations strategy; include rollback pitfalls.",
+    "error": "[Errno 104] Connection reset by peer"
+  },
+  {
+    "prompt": "Provide a decision-tree for remediation sequencing: what to fix first to reduce systemic risk.",
+    "error": "[Errno 104] Connection reset by peer"
+  }
+]

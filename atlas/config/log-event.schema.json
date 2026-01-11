@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "atlas.log.event.schema.json",
+  "title": "Atlas Log Event",
+  "type": "object",
+  "required": ["event_type", "timestamp", "device_id", "agent_id"],
+  "properties": {
+    "event_type": {"type": "string"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "device_id": {"type": "string"},
+    "agent_id": {"type": "string"},
+    "world_commit": {"type": "string"},
+    "context_refs": {"type": "array", "items": {"type": "string"}},
+    "model": {"type": "string"},
+    "tokens": {"type": "integer", "minimum": 0},
+    "latency_ms": {"type": "integer", "minimum": 0},
+    "status": {"enum": ["ok", "error"]},
+    "error": {"type": "string"},
+    "payload": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}
