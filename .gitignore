@@ -5,6 +5,8 @@ logs
 atlas/logs/
 atlas/agents/**/data/
 atlas/services/**/data/
+atlas/agents/node-agent/bin/
+atlas/services/control-plane/control-plane
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
