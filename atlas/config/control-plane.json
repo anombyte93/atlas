@@ -7,5 +7,6 @@
   "api_token": "change-me",
   "tls_cert_path": "",
   "tls_key_path": "",
-  "ca_cert_path": ""
+  "ca_cert_path": "",
+  "device_ttl_hours": 0
 }

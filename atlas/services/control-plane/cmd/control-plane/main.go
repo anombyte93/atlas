@@ -18,15 +18,16 @@ import (
 )
 
 type Config struct {
-	ListenAddr   string   `json:"listen_addr"`
-	DataDir      string   `json:"data_dir"`
-	ConfigPath   string   `json:"config_path"`
-	WorldRepo    string   `json:"world_repo_path"`
-	AllowedRoles []string `json:"allowed_roles"`
-	APIToken     string   `json:"api_token"`
-	TLSCertPath  string   `json:"tls_cert_path"`
-	TLSKeyPath   string   `json:"tls_key_path"`
-	CACertPath   string   `json:"ca_cert_path"`
+	ListenAddr     string   `json:"listen_addr"`
+	DataDir        string   `json:"data_dir"`
+	ConfigPath     string   `json:"config_path"`
+	WorldRepo      string   `json:"world_repo_path"`
+	AllowedRoles   []string `json:"allowed_roles"`
+	APIToken       string   `json:"api_token"`
+	TLSCertPath    string   `json:"tls_cert_path"`
+	TLSKeyPath     string   `json:"tls_key_path"`
+	CACertPath     string   `json:"ca_cert_path"`
+	DeviceTTLHours int      `json:"device_ttl_hours"`
 }
 
 type Registry struct {
@@ -128,6 +129,7 @@ func main() {
 			cfg.WorldRepo = newCfg.WorldRepo
 		}
 	})
+	go pruneDevicesLoop(registry, cfg.DeviceTTLHours)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
@@ -530,6 +532,7 @@ func initDB(path string) *sql.DB {
 		json TEXT NOT NULL,
 		last_seen TEXT
 	)`)
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS devices_last_seen_idx ON devices(last_seen)")
 	return db
 }
 
@@ -608,6 +611,33 @@ func loadDevicesFromDB(registry *Registry) {
 		}
 		registry.devices[d.DeviceID] = &d
 	}
+}
+
+func pruneDevicesLoop(registry *Registry, ttlHours int) {
+	if ttlHours <= 0 {
+		return
+	}
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+	for range ticker.C {
+		cutoff := time.Now().UTC().Add(-time.Duration(ttlHours) * time.Hour)
+		pruneDevices(registry, cutoff)
+	}
+}
+
+func pruneDevices(registry *Registry, cutoff time.Time) {
+	registry.mu.Lock()
+	for id, d := range registry.devices {
+		t, err := time.Parse(time.RFC3339, d.LastSeen)
+		if err != nil || t.Before(cutoff) {
+			delete(registry.devices, id)
+		}
+	}
+	registry.mu.Unlock()
+	if deviceStore == nil || deviceStore.db == nil {
+		return
+	}
+	_, _ = deviceStore.db.Exec("DELETE FROM devices WHERE last_seen < ?", cutoff.Format(time.RFC3339))
 }
 
 func (s *TaskStore) loadFromLog() {

@@ -16,3 +16,4 @@
 - ci.md
 - device-registry.md
 - ha-roadmap.md
+- llm-providers.md

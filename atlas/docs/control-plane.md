@@ -53,3 +53,4 @@ curl --cacert ca.pem --cert client.pem --key client.key https://localhost:8080/h
 ## Device Registry
 - Device registrations are persisted to SQLite (`tasks.db`).
 - See `atlas/docs/device-registry.md`.
+ - Optional TTL pruning via `device_ttl_hours` in config.
