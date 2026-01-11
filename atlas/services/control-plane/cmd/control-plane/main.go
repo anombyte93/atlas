@@ -2,6 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
+	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -10,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 type Config struct {
@@ -19,6 +24,9 @@ type Config struct {
 	WorldRepo    string `json:"world_repo_path"`
 	AllowedRoles []string `json:"allowed_roles"`
 	APIToken     string `json:"api_token"`
+	TLSCertPath  string `json:"tls_cert_path"`
+	TLSKeyPath   string `json:"tls_key_path"`
+	CACertPath   string `json:"ca_cert_path"`
 }
 
 type Registry struct {
@@ -27,6 +35,7 @@ type Registry struct {
 }
 
 type Device struct {
+	SchemaVersion string     `json:"schema_version"`
 	DeviceID     string     `json:"device_id"`
 	Hostname     string     `json:"hostname"`
 	Roles        []string   `json:"roles"`
@@ -44,6 +53,7 @@ type Capability struct {
 }
 
 type Task struct {
+	SchemaVersion string   `json:"schema_version"`
 	ID           string   `json:"id"`
 	Type         string   `json:"type"`
 	Status       string   `json:"status"`
@@ -53,6 +63,8 @@ type Task struct {
 	RequiredTags []string `json:"required_tags,omitempty"`
 	ClaimedBy    string   `json:"claimed_by,omitempty"`
 	LeaseUntil   string   `json:"lease_until,omitempty"`
+	Attempts     int      `json:"attempts,omitempty"`
+	MaxAttempts  int      `json:"max_attempts,omitempty"`
 	CreatedAt    string   `json:"created_at"`
 	UpdatedAt    string   `json:"updated_at"`
 	Result       *TaskResult `json:"result,omitempty"`
@@ -68,7 +80,11 @@ type TaskStore struct {
 	mu    sync.RWMutex
 	tasks map[string]*Task
 	logPath string
+	db *sql.DB
+	audit *AuditLogger
 }
+
+var auditLogger *AuditLogger
 
 func main() {
 	cfg := loadConfig("../../config/control-plane.json")
@@ -78,10 +94,17 @@ func main() {
 	if cfg.DataDir == "" {
 		cfg.DataDir = "./data"
 	}
+	if envToken := os.Getenv("ATLAS_API_TOKEN"); envToken != "" {
+		cfg.APIToken = envToken
+	}
 	_ = os.MkdirAll(cfg.DataDir, 0o755)
 	registry := &Registry{devices: map[string]*Device{}}
-	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl")}
+	db := initDB(filepath.Join(cfg.DataDir, "tasks.db"))
+	audit := &AuditLogger{logPath: filepath.Join(cfg.DataDir, "audit.jsonl")}
+	auditLogger = audit
+	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl"), db: db, audit: audit}
 	store.loadFromLog()
+	store.loadFromDB()
 
 	go watchConfig(cfg.ConfigPath, func() {
 		newCfg := loadConfig(cfg.ConfigPath)
@@ -111,6 +134,14 @@ func main() {
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       30 * time.Second,
+	}
+	if cfg.TLSCertPath != "" && cfg.TLSKeyPath != "" {
+		tlsConfig, err := loadTLSConfig(cfg.CACertPath)
+		if err != nil {
+			log.Fatalf("tls config error: %v", err)
+		}
+		server.TLSConfig = tlsConfig
+		log.Fatal(server.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath))
 	}
 	log.Fatal(server.ListenAndServe())
 }
@@ -152,12 +183,17 @@ func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, 
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var payload Device
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !validSchemaVersion(payload.SchemaVersion) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -178,6 +214,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -202,6 +239,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 
 func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -221,6 +259,7 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -231,6 +270,10 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		return
 	}
 	if t.ID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !validSchemaVersion(t.SchemaVersion) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -259,6 +302,8 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	store.tasks[t.ID] = &t
 	store.mu.Unlock()
 	store.appendEvent(t)
+	store.persistTask(t)
+	store.audit.Log("task_submit", map[string]any{"task_id": t.ID})
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -268,6 +313,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -297,12 +343,18 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		if t.Status != "queued" {
 			continue
 		}
+		if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
+			continue
+		}
 		if matchesTags(req.Tags, t.RequiredTags) {
 			t.Status = "running"
 			t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 			t.ClaimedBy = req.AgentID
 			t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
+			t.Attempts += 1
 			store.appendEvent(*t)
+			store.persistTask(*t)
+			store.audit.Log("task_claim", map[string]any{"task_id": t.ID, "agent_id": req.AgentID})
 			_ = json.NewEncoder(w).Encode(t)
 			return
 		}
@@ -316,12 +368,17 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var report Task
 	if err := json.NewDecoder(r.Body).Decode(&report); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if !validSchemaVersion(report.SchemaVersion) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -356,12 +413,15 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	t.Result = report.Result
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	store.appendEvent(*t)
+	store.persistTask(*t)
+	store.audit.Log("task_report", map[string]any{"task_id": t.ID, "status": report.Status, "agent_id": report.ClaimedBy})
 	store.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
 }
 
 func handleListTasks(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -404,6 +464,61 @@ func (s *TaskStore) appendEvent(t Task) {
 	_, _ = w.WriteString(string(b) + "\n")
 	_ = w.Flush()
 	_ = f.Sync()
+}
+
+func initDB(path string) *sql.DB {
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil
+	}
+	_, _ = db.Exec("PRAGMA journal_mode=WAL;")
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS tasks (
+		id TEXT PRIMARY KEY,
+		json TEXT NOT NULL,
+		status TEXT,
+		updated_at TEXT,
+		attempts INTEGER DEFAULT 0,
+		claimed_by TEXT,
+		lease_until TEXT
+	)`)
+	return db
+}
+
+func (s *TaskStore) persistTask(t Task) {
+	if s.db == nil {
+		return
+	}
+	b, _ := json.Marshal(t)
+	_, _ = s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, claimed_by, lease_until)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET json=excluded.json, status=excluded.status, updated_at=excluded.updated_at,
+			attempts=excluded.attempts, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until`,
+		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.ClaimedBy, t.LeaseUntil)
+}
+
+func (s *TaskStore) loadFromDB() {
+	if s.db == nil {
+		return
+	}
+	rows, err := s.db.Query("SELECT json FROM tasks")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			continue
+		}
+		var t Task
+		if err := json.Unmarshal([]byte(raw), &t); err != nil {
+			continue
+		}
+		if t.ID == "" {
+			continue
+		}
+		s.tasks[t.ID] = &t
+	}
 }
 
 func (s *TaskStore) loadFromLog() {
@@ -459,6 +574,66 @@ func computeStatus(lastSeen string) string {
 		return "online"
 	}
 	return "offline"
+}
+
+func validSchemaVersion(v string) bool {
+	return strings.HasPrefix(v, "1.")
+}
+
+func logAuthFail(r *http.Request) {
+	if auditLogger == nil {
+		return
+	}
+	auditLogger.Log("auth_fail", map[string]any{
+		"path":   r.URL.Path,
+		"remote": r.RemoteAddr,
+	})
+}
+
+type AuditLogger struct {
+	logPath string
+	mu      sync.Mutex
+}
+
+func (a *AuditLogger) Log(event string, fields map[string]any) {
+	if a == nil || a.logPath == "" {
+		return
+	}
+	entry := map[string]any{
+		"event_type": event,
+		"timestamp":  time.Now().UTC().Format(time.RFC3339),
+	}
+	for k, v := range fields {
+		entry[k] = v
+	}
+	b, _ := json.Marshal(entry)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	f, err := os.OpenFile(a.logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_, _ = f.Write(append(b, '\n'))
+	_ = f.Sync()
+}
+
+func loadTLSConfig(caPath string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{}
+	if caPath == "" {
+		return tlsConfig, nil
+	}
+	caCert, err := os.ReadFile(caPath)
+	if err != nil {
+		return nil, err
+	}
+	caPool := x509.NewCertPool()
+	if !caPool.AppendCertsFromPEM(caCert) {
+		return nil, nil
+	}
+	tlsConfig.ClientCAs = caPool
+	tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+	return tlsConfig, nil
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

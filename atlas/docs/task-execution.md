@@ -9,7 +9,8 @@ POST `/tasks/submit`
   "type": "shell",
   "command": "echo hello",
   "timeout_sec": 30,
-  "required_tags": ["role:server"]
+  "required_tags": ["role:server"],
+  "max_attempts": 3
 }
 ```
 Notes:
@@ -28,6 +29,7 @@ POST `/tasks/report`
 ```
 {
   "id": "task-1",
+  "schema_version": "1.0.0",
   "claimed_by": "agent-local",
   "status": "completed",
   "result": {"exit_code": 0, "stdout": "hello\n", "stderr": ""}

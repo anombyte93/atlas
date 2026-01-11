@@ -43,6 +43,7 @@ type Capability struct {
 }
 
 type RegisterPayload struct {
+	SchemaVersion string     `json:"schema_version"`
 	DeviceID     string     `json:"device_id"`
 	Hostname     string     `json:"hostname"`
 	Roles        []string   `json:"roles"`
@@ -63,6 +64,9 @@ func main() {
 	cfg, err := loadConfig(*configPath)
 	if err != nil {
 		fatal("config load failed", err)
+	}
+	if envToken := os.Getenv("ATLAS_API_TOKEN"); envToken != "" {
+		cfg.APIToken = envToken
 	}
 	currentToken = cfg.APIToken
 	deviceID := cfg.DeviceID
@@ -170,6 +174,7 @@ func atoi(s string) int {
 
 func registerIfNeeded(cfg AgentConfig, cap Capability) {
 	payload := RegisterPayload{
+		SchemaVersion: "1.0.0",
 		DeviceID:     cfg.DeviceID,
 		Hostname:     hostname(),
 		Roles:        []string{"server"},
@@ -214,6 +219,9 @@ func pollAndExecute(cfg AgentConfig) {
 	var task Task
 	if err := json.Unmarshal(resp, &task); err != nil || task.ID == "" {
 		return
+	}
+	if task.SchemaVersion == "" {
+		task.SchemaVersion = "1.0.0"
 	}
 	result, status := executeTask(cfg, task)
 	task.Status = status

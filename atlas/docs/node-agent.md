@@ -16,6 +16,7 @@ go build ./cmd/node-agent
 
 ## Auth
 - If `api_token` is set in agent config, requests include `Authorization: Bearer <token>`.
+- `ATLAS_API_TOKEN` environment variable overrides config.
 
 ## Capabilities
 - OS, arch, CPU cores, best-effort memory

@@ -17,6 +17,7 @@ go build ./cmd/control-plane
 ## Auth
 - If `api_token` is set in `atlas/config/control-plane.json`, all write endpoints require `Authorization: Bearer <token>`.
 - Read endpoints (`/devices`, `/tasks/list`) also require the token when set.
+ - `ATLAS_API_TOKEN` environment variable overrides config.
 
 ## Endpoints
 - `POST /register`
@@ -30,3 +31,7 @@ go build ./cmd/control-plane
 
 ## Hot Reload
 - Polls config file mtime every 2s and reloads values.
+
+## TLS
+- Set `tls_cert_path` and `tls_key_path` to enable TLS.
+- Set `ca_cert_path` to require client certs (mTLS).
