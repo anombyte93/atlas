@@ -321,7 +321,11 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		writeError(w, http.StatusBadRequest, "validation", "script_path required for script")
 		return
 	}
-	t.Status = "queued"
+	if t.Status != "" && t.Status != string(StateQueued) {
+		writeError(w, http.StatusBadRequest, "validation", "status must be queued or empty on submit")
+		return
+	}
+	t.Status = string(StateQueued)
 	now := time.Now().UTC().Format(time.RFC3339)
 	t.CreatedAt = now
 	t.UpdatedAt = now
@@ -373,9 +377,13 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			delete(store.queued, id)
 			continue
 		}
-		if t.Status != "queued" {
-			if t.Status == "running" && leaseExpired(t.LeaseUntil) {
-				t.Status = "queued"
+		if t.Status != string(StateQueued) {
+			if t.Status == string(StateRunning) && leaseExpired(t.LeaseUntil) {
+				if next, ok := transition(StateRunning, EventLeaseExpire); ok {
+					t.Status = string(next)
+				} else {
+					continue
+				}
 				t.NextEligible = time.Now().UTC().Add(jitteredDelay(5 * time.Second)).Format(time.RFC3339)
 				t.ClaimedBy = ""
 				t.LeaseUntil = ""
@@ -385,7 +393,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 					t.Attempts += 1
 					t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
 					if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
-						t.Status = "failed"
+						t.Status = string(StateFailed)
 						delete(store.queued, t.ID)
 					}
 				}
@@ -393,7 +401,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 				continue
 			}
 		}
-		if t.Status != "queued" {
+		if t.Status != string(StateQueued) {
 			continue
 		}
 		if t.NextEligible != "" && !eligibleNow(t.NextEligible) {
@@ -403,7 +411,12 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			continue
 		}
 		if matchesTags(req.Tags, t.RequiredTags) {
-			t.Status = "running"
+			if next, ok := transition(StateQueued, EventClaim); ok {
+				t.Status = string(next)
+			} else {
+				writeError(w, http.StatusConflict, "state_conflict", "cannot claim from current state")
+				return
+			}
 			t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 			t.ClaimedBy = req.AgentID
 			t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
@@ -455,28 +468,50 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		writeError(w, http.StatusConflict, "lease_expired", "task lease expired")
 		return
 	}
-	if report.Status != "completed" && report.Status != "failed" {
+	if report.Status != string(StateCompleted) && report.Status != string(StateFailed) {
 		store.mu.Unlock()
 		writeError(w, http.StatusBadRequest, "validation", "status must be completed or failed")
 		return
 	}
-	if t.Status != "running" {
+	if t.Status != string(StateRunning) {
 		store.mu.Unlock()
 		writeError(w, http.StatusConflict, "state_conflict", "task not running")
 		return
 	}
-	t.Status = report.Status
+	if report.Status == string(StateCompleted) {
+		next, ok := transition(StateRunning, EventReportOK)
+		if !ok {
+			store.mu.Unlock()
+			writeError(w, http.StatusConflict, "state_conflict", "invalid transition")
+			return
+		}
+		t.Status = string(next)
+	}
+	if report.Status == string(StateFailed) {
+		next, ok := transition(StateRunning, EventReportFail)
+		if !ok {
+			store.mu.Unlock()
+			writeError(w, http.StatusConflict, "state_conflict", "invalid transition")
+			return
+		}
+		t.Status = string(next)
+	}
 	t.Result = report.Result
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
-	if report.Status == "failed" {
+	if report.Status == string(StateFailed) {
 		t.Attempts += 1
 		t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
 		t.ClaimedBy = ""
 		t.LeaseUntil = ""
 		if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
-			t.Status = "failed"
+			t.Status = string(StateFailed)
 		} else {
-			t.Status = "queued"
+			if next, ok := transition(StateFailed, EventRetry); ok {
+				t.Status = string(next)
+			} else {
+				t.Status = string(StateQueued)
+			}
+			store.queued[t.ID] = struct{}{}
 		}
 	}
 	store.appendEvent(*t)
