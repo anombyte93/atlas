@@ -18,15 +18,15 @@ import (
 )
 
 type Config struct {
-	ListenAddr   string `json:"listen_addr"`
-	DataDir      string `json:"data_dir"`
-	ConfigPath   string `json:"config_path"`
-	WorldRepo    string `json:"world_repo_path"`
+	ListenAddr   string   `json:"listen_addr"`
+	DataDir      string   `json:"data_dir"`
+	ConfigPath   string   `json:"config_path"`
+	WorldRepo    string   `json:"world_repo_path"`
 	AllowedRoles []string `json:"allowed_roles"`
-	APIToken     string `json:"api_token"`
-	TLSCertPath  string `json:"tls_cert_path"`
-	TLSKeyPath   string `json:"tls_key_path"`
-	CACertPath   string `json:"ca_cert_path"`
+	APIToken     string   `json:"api_token"`
+	TLSCertPath  string   `json:"tls_cert_path"`
+	TLSKeyPath   string   `json:"tls_key_path"`
+	CACertPath   string   `json:"ca_cert_path"`
 }
 
 type Registry struct {
@@ -36,12 +36,12 @@ type Registry struct {
 
 type Device struct {
 	SchemaVersion string     `json:"schema_version"`
-	DeviceID     string     `json:"device_id"`
-	Hostname     string     `json:"hostname"`
-	Roles        []string   `json:"roles"`
-	Capabilities Capability `json:"capabilities"`
-	LastSeen     string     `json:"last_seen"`
-	Status       string     `json:"status,omitempty"`
+	DeviceID      string     `json:"device_id"`
+	Hostname      string     `json:"hostname"`
+	Roles         []string   `json:"roles"`
+	Capabilities  Capability `json:"capabilities"`
+	LastSeen      string     `json:"last_seen"`
+	Status        string     `json:"status,omitempty"`
 }
 
 type Capability struct {
@@ -53,21 +53,23 @@ type Capability struct {
 }
 
 type Task struct {
-	SchemaVersion string   `json:"schema_version"`
-	ID           string   `json:"id"`
-	Type         string   `json:"type"`
-	Status       string   `json:"status"`
-	Command      string   `json:"command,omitempty"`
-	ScriptPath   string   `json:"script_path,omitempty"`
-	TimeoutSec   int      `json:"timeout_sec"`
-	RequiredTags []string `json:"required_tags,omitempty"`
-	ClaimedBy    string   `json:"claimed_by,omitempty"`
-	LeaseUntil   string   `json:"lease_until,omitempty"`
-	Attempts     int      `json:"attempts,omitempty"`
-	MaxAttempts  int      `json:"max_attempts,omitempty"`
-	CreatedAt    string   `json:"created_at"`
-	UpdatedAt    string   `json:"updated_at"`
-	Result       *TaskResult `json:"result,omitempty"`
+	SchemaVersion string      `json:"schema_version"`
+	ID            string      `json:"id"`
+	Type          string      `json:"type"`
+	Status        string      `json:"status"`
+	Command       string      `json:"command,omitempty"`
+	ScriptPath    string      `json:"script_path,omitempty"`
+	TimeoutSec    int         `json:"timeout_sec"`
+	RequiredTags  []string    `json:"required_tags,omitempty"`
+	ClaimedBy     string      `json:"claimed_by,omitempty"`
+	LeaseUntil    string      `json:"lease_until,omitempty"`
+	Attempts      int         `json:"attempts,omitempty"`
+	MaxAttempts   int         `json:"max_attempts,omitempty"`
+	LeaseExpiries int         `json:"lease_expiries,omitempty"`
+	NextEligible  string      `json:"next_eligible_at,omitempty"`
+	CreatedAt     string      `json:"created_at"`
+	UpdatedAt     string      `json:"updated_at"`
+	Result        *TaskResult `json:"result,omitempty"`
 }
 
 type TaskResult struct {
@@ -77,11 +79,12 @@ type TaskResult struct {
 }
 
 type TaskStore struct {
-	mu    sync.RWMutex
-	tasks map[string]*Task
-	logPath string
-	db *sql.DB
-	audit *AuditLogger
+	mu         sync.RWMutex
+	tasks      map[string]*Task
+	logPath    string
+	db         *sql.DB
+	audit      *AuditLogger
+	writeCount int
 }
 
 var auditLogger *AuditLogger
@@ -96,6 +99,9 @@ func main() {
 	}
 	if envToken := os.Getenv("ATLAS_API_TOKEN"); envToken != "" {
 		cfg.APIToken = envToken
+	}
+	if !insecureAllowed() && (cfg.APIToken == "" || cfg.APIToken == "change-me") {
+		log.Fatal("api_token is empty or default; set ATLAS_API_TOKEN or change config, or set ATLAS_INSECURE=1 for dev")
 	}
 	_ = os.MkdirAll(cfg.DataDir, 0o755)
 	registry := &Registry{devices: map[string]*Device{}}
@@ -179,26 +185,26 @@ func watchConfig(path string, onChange func()) {
 
 func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var payload Device
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
 		return
 	}
 	if !validSchemaVersion(payload.SchemaVersion) {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "schema_version", "unsupported schema_version")
 		return
 	}
 	if payload.DeviceID == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "device_id required")
 		return
 	}
 	payload.LastSeen = time.Now().UTC().Format(time.RFC3339)
@@ -210,12 +216,12 @@ func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, 
 
 func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
@@ -225,7 +231,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 		Capabilities Capability `json:"capabilities"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
 		return
 	}
 	registry.mu.Lock()
@@ -240,7 +246,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registry, cfg Config) {
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	registry.mu.RLock()
@@ -255,38 +261,38 @@ func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registr
 
 func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var t Task
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
 		return
 	}
 	if t.ID == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "id required")
 		return
 	}
 	if !validSchemaVersion(t.SchemaVersion) {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "schema_version", "unsupported schema_version")
 		return
 	}
 	if t.Type != "shell" && t.Type != "script" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "type must be shell or script")
 		return
 	}
 	if t.Type == "shell" && t.Command == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "command required for shell")
 		return
 	}
 	if t.Type == "script" && t.ScriptPath == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "script_path required for script")
 		return
 	}
 	t.Status = "queued"
@@ -296,7 +302,7 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	store.mu.Lock()
 	if _, exists := store.tasks[t.ID]; exists {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusConflict)
+		writeError(w, http.StatusConflict, "conflict", "duplicate task id")
 		return
 	}
 	store.tasks[t.ID] = &t
@@ -309,25 +315,25 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 
 func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req struct {
-		Tags []string `json:"tags"`
-		AgentID string `json:"agent_id"`
+		Tags    []string `json:"tags"`
+		AgentID string   `json:"agent_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
 		return
 	}
 	if req.AgentID == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "agent_id required")
 		return
 	}
 	store.mu.Lock()
@@ -336,11 +342,25 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		if t.Status != "queued" {
 			if t.Status == "running" && leaseExpired(t.LeaseUntil) {
 				t.Status = "queued"
+				t.NextEligible = time.Now().UTC().Add(jitteredDelay(5 * time.Second)).Format(time.RFC3339)
+				t.ClaimedBy = ""
+				t.LeaseUntil = ""
+				t.LeaseExpiries += 1
+				if t.LeaseExpiries%3 == 0 {
+					t.Attempts += 1
+					t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
+					if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
+						t.Status = "failed"
+					}
+				}
 			} else {
 				continue
 			}
 		}
 		if t.Status != "queued" {
+			continue
+		}
+		if t.NextEligible != "" && !eligibleNow(t.NextEligible) {
 			continue
 		}
 		if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
@@ -351,7 +371,6 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 			t.ClaimedBy = req.AgentID
 			t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
-			t.Attempts += 1
 			store.appendEvent(*t)
 			store.persistTask(*t)
 			store.audit.Log("task_claim", map[string]any{"task_id": t.ID, "agent_id": req.AgentID})
@@ -364,54 +383,65 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 
 func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var report Task
 	if err := json.NewDecoder(r.Body).Decode(&report); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
 		return
 	}
 	if !validSchemaVersion(report.SchemaVersion) {
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "schema_version", "unsupported schema_version")
 		return
 	}
 	store.mu.Lock()
 	t, ok := store.tasks[report.ID]
 	if !ok {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusNotFound)
+		writeError(w, http.StatusNotFound, "not_found", "task not found")
 		return
 	}
 	if t.ClaimedBy == "" || t.ClaimedBy != report.ClaimedBy {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
 		return
 	}
 	if leaseExpired(t.LeaseUntil) {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusConflict)
+		writeError(w, http.StatusConflict, "lease_expired", "task lease expired")
 		return
 	}
 	if report.Status != "completed" && report.Status != "failed" {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusBadRequest)
+		writeError(w, http.StatusBadRequest, "validation", "status must be completed or failed")
 		return
 	}
 	if t.Status != "running" {
 		store.mu.Unlock()
-		w.WriteHeader(http.StatusConflict)
+		writeError(w, http.StatusConflict, "state_conflict", "task not running")
 		return
 	}
 	t.Status = report.Status
 	t.Result = report.Result
 	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	if report.Status == "failed" {
+		t.Attempts += 1
+		t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
+		t.ClaimedBy = ""
+		t.LeaseUntil = ""
+		if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
+			t.Status = "failed"
+		} else {
+			t.Status = "queued"
+		}
+	}
 	store.appendEvent(*t)
 	store.persistTask(*t)
 	store.audit.Log("task_report", map[string]any{"task_id": t.ID, "status": report.Status, "agent_id": report.ClaimedBy})
@@ -422,7 +452,7 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 func handleListTasks(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
-		w.WriteHeader(http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 		return
 	}
 	store.mu.RLock()
@@ -454,6 +484,7 @@ func (s *TaskStore) appendEvent(t Task) {
 	if s.logPath == "" {
 		return
 	}
+	rotateIfNeeded(s.logPath)
 	f, err := os.OpenFile(s.logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return
@@ -478,9 +509,13 @@ func initDB(path string) *sql.DB {
 		status TEXT,
 		updated_at TEXT,
 		attempts INTEGER DEFAULT 0,
+		lease_expiries INTEGER DEFAULT 0,
 		claimed_by TEXT,
-		lease_until TEXT
+		lease_until TEXT,
+		next_eligible TEXT
 	)`)
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN lease_expiries INTEGER")
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN next_eligible TEXT")
 	return db
 }
 
@@ -489,11 +524,15 @@ func (s *TaskStore) persistTask(t Task) {
 		return
 	}
 	b, _ := json.Marshal(t)
-	_, _ = s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, claimed_by, lease_until)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+	_, _ = s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, lease_expiries, claimed_by, lease_until, next_eligible)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET json=excluded.json, status=excluded.status, updated_at=excluded.updated_at,
-			attempts=excluded.attempts, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until`,
-		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.ClaimedBy, t.LeaseUntil)
+			attempts=excluded.attempts, lease_expiries=excluded.lease_expiries, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until, next_eligible=excluded.next_eligible`,
+		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.LeaseExpiries, t.ClaimedBy, t.LeaseUntil, t.NextEligible)
+	s.writeCount += 1
+	if s.writeCount%100 == 0 {
+		_, _ = s.db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+	}
 }
 
 func (s *TaskStore) loadFromDB() {
@@ -580,6 +619,58 @@ func validSchemaVersion(v string) bool {
 	return strings.HasPrefix(v, "1.")
 }
 
+func writeError(w http.ResponseWriter, status int, code string, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"error":   code,
+		"message": message,
+	})
+}
+
+func insecureAllowed() bool {
+	return os.Getenv("ATLAS_INSECURE") == "1"
+}
+
+func eligibleNow(ts string) bool {
+	t, err := time.Parse(time.RFC3339, ts)
+	if err != nil {
+		return true
+	}
+	return time.Now().UTC().After(t)
+}
+
+func retryBackoff(attempt int) time.Duration {
+	if attempt < 1 {
+		return 5 * time.Second
+	}
+	delay := time.Second * time.Duration(5*(1<<uint(attempt-1)))
+	if delay > 2*time.Minute {
+		delay = 2 * time.Minute
+	}
+	return delay + jitteredDelay(2*time.Second)
+}
+
+func jitteredDelay(base time.Duration) time.Duration {
+	if base <= 0 {
+		return 0
+	}
+	n := time.Now().UnixNano() % int64(base)
+	return time.Duration(n)
+}
+
+func rotateIfNeeded(path string) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return
+	}
+	if info.Size() < 10*1024*1024 {
+		return
+	}
+	ts := time.Now().UTC().Format("20060102-150405")
+	_ = os.Rename(path, path+"."+ts)
+}
+
 func logAuthFail(r *http.Request) {
 	if auditLogger == nil {
 		return
@@ -599,6 +690,7 @@ func (a *AuditLogger) Log(event string, fields map[string]any) {
 	if a == nil || a.logPath == "" {
 		return
 	}
+	rotateIfNeeded(a.logPath)
 	entry := map[string]any{
 		"event_type": event,
 		"timestamp":  time.Now().UTC().Format(time.RFC3339),

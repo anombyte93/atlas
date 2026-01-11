@@ -15,6 +15,7 @@ POST `/tasks/submit`
 ```
 Notes:
 - Duplicate task IDs return 409.
+- Failed tasks are re-queued with exponential backoff until `max_attempts` is reached.
 
 ## Claim task (agent)
 POST `/tasks/claim`

@@ -4,6 +4,7 @@
 - Default path: `atlas/logs/ai.jsonl`
 - Append-only with file locking
 - Includes `schema_version` for forward compatibility
+- Log files rotate at ~10MB (control plane audit/tasks logs).
 
 ## Query
 ```

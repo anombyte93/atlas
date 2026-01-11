@@ -12,3 +12,5 @@
 - migrations.md
 - cli.md
 - task-execution.md
+- errors.md
+- ci.md

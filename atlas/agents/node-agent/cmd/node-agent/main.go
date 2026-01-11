@@ -44,10 +44,10 @@ type Capability struct {
 
 type RegisterPayload struct {
 	SchemaVersion string     `json:"schema_version"`
-	DeviceID     string     `json:"device_id"`
-	Hostname     string     `json:"hostname"`
-	Roles        []string   `json:"roles"`
-	Capabilities Capability `json:"capabilities"`
+	DeviceID      string     `json:"device_id"`
+	Hostname      string     `json:"hostname"`
+	Roles         []string   `json:"roles"`
+	Capabilities  Capability `json:"capabilities"`
 }
 
 type HeartbeatPayload struct {
@@ -149,8 +149,7 @@ func detectMemoryMB() int {
 	if err != nil {
 		return 0
 	}
-	for _, line := range strings.Split(string(b), "
-") {
+	for _, line := range strings.Split(string(b), "\n") {
 		if strings.HasPrefix(line, "MemTotal:") {
 			fields := strings.Fields(line)
 			if len(fields) >= 2 {
@@ -175,10 +174,10 @@ func atoi(s string) int {
 func registerIfNeeded(cfg AgentConfig, cap Capability) {
 	payload := RegisterPayload{
 		SchemaVersion: "1.0.0",
-		DeviceID:     cfg.DeviceID,
-		Hostname:     hostname(),
-		Roles:        []string{"server"},
-		Capabilities: cap,
+		DeviceID:      cfg.DeviceID,
+		Hostname:      hostname(),
+		Roles:         []string{"server"},
+		Capabilities:  cap,
 	}
 	_ = postJSON(cfg.ControlPlaneURL+"/register", payload)
 }
@@ -193,15 +192,16 @@ func sendHeartbeat(cfg AgentConfig, cap Capability) {
 }
 
 type Task struct {
-	ID           string   `json:"id"`
-	Type         string   `json:"type"`
-	Status       string   `json:"status"`
-	Command      string   `json:"command,omitempty"`
-	ScriptPath   string   `json:"script_path,omitempty"`
-	TimeoutSec   int      `json:"timeout_sec"`
-	RequiredTags []string `json:"required_tags,omitempty"`
-	ClaimedBy    string   `json:"claimed_by,omitempty"`
-	Result       *TaskResult `json:"result,omitempty"`
+	SchemaVersion string      `json:"schema_version"`
+	ID            string      `json:"id"`
+	Type          string      `json:"type"`
+	Status        string      `json:"status"`
+	Command       string      `json:"command,omitempty"`
+	ScriptPath    string      `json:"script_path,omitempty"`
+	TimeoutSec    int         `json:"timeout_sec"`
+	RequiredTags  []string    `json:"required_tags,omitempty"`
+	ClaimedBy     string      `json:"claimed_by,omitempty"`
+	Result        *TaskResult `json:"result,omitempty"`
 }
 
 type TaskResult struct {
@@ -323,7 +323,6 @@ func hostname() string {
 }
 
 func fatal(msg string, err error) {
-	_, _ = os.Stderr.WriteString(msg + ": " + err.Error() + "
-")
+	_, _ = os.Stderr.WriteString(msg + ": " + err.Error() + "\n")
 	os.Exit(1)
 }
