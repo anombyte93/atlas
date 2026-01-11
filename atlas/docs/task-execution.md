@@ -37,5 +37,11 @@ POST `/tasks/report`
 }
 ```
 
+## Renew lease (agent)
+POST `/tasks/renew`
+```
+{"id": "task-1", "claimed_by": "agent-local"}
+```
+
 ## Auth
 - If control plane `api_token` is set, include `Authorization: Bearer <token>` for these endpoints.

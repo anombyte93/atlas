@@ -14,6 +14,9 @@
     "heartbeat_interval_sec": {"type": "integer", "minimum": 5},
     "task_poll_interval_sec": {"type": "integer", "minimum": 5},
     "world_repo_path": {"type": "string"},
+    "allow_all_commands": {"type": "boolean"},
+    "allowed_commands": {"type": "array", "items": {"type": "string"}},
+    "lease_renew_seconds": {"type": "integer", "minimum": 5},
     "permissions": {
       "type": "object",
       "properties": {

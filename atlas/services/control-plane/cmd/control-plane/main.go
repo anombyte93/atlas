@@ -31,6 +31,8 @@ type Config struct {
 	DevicePruneIntervalMinutes int      `json:"device_prune_interval_minutes"`
 	LeaderLeaseEnabled         bool     `json:"leader_lease_enabled"`
 	LeaderID                   string   `json:"leader_id"`
+	LeaderLeaseSeconds         int      `json:"leader_lease_seconds"`
+	LeaderRenewSeconds         int      `json:"leader_renew_seconds"`
 }
 
 type Registry struct {
@@ -93,6 +95,9 @@ type TaskStore struct {
 }
 
 var auditLogger *AuditLogger
+var leaderActive bool
+var leaderToken int64
+var leaderEnabled bool
 var deviceStore *DeviceStore
 
 type DeviceStore struct {
@@ -104,8 +109,14 @@ func main() {
 	if cfg.ListenAddr == "" {
 		cfg.ListenAddr = ":8080"
 	}
+	if envAddr := os.Getenv("ATLAS_LISTEN_ADDR"); envAddr != "" {
+		cfg.ListenAddr = envAddr
+	}
 	if cfg.DataDir == "" {
 		cfg.DataDir = "./data"
+	}
+	if envData := os.Getenv("ATLAS_DATA_DIR"); envData != "" {
+		cfg.DataDir = envData
 	}
 	if envToken := os.Getenv("ATLAS_API_TOKEN"); envToken != "" {
 		cfg.APIToken = envToken
@@ -123,11 +134,22 @@ func main() {
 		if cfg.LeaderID == "" {
 			cfg.LeaderID = getHostname()
 		}
-		ok := acquireLeaderLease(db, cfg.LeaderID)
+		ttl := time.Duration(cfg.LeaderLeaseSeconds) * time.Second
+		if ttl <= 0 {
+			ttl = 30 * time.Second
+		}
+		token, ok := acquireLeaderLease(db, cfg.LeaderID, ttl)
 		if !ok {
 			log.Fatal("failed to acquire leader lease")
 		}
-		go renewLeaderLease(db, cfg.LeaderID)
+		leaderToken = token
+		leaderActive = true
+		leaderEnabled = true
+		renewEvery := time.Duration(cfg.LeaderRenewSeconds) * time.Second
+		if renewEvery <= 0 {
+			renewEvery = 10 * time.Second
+		}
+		go renewLeaderLeaseLoop(db, cfg.LeaderID, token, ttl, renewEvery)
 	}
 	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl"), db: db, audit: audit}
 	store.queued = map[string]struct{}{}
@@ -155,6 +177,7 @@ func main() {
 	mux.HandleFunc("/tasks/claim", func(w http.ResponseWriter, r *http.Request) { handleClaimTask(w, r, store, cfg) })
 	mux.HandleFunc("/tasks/report", func(w http.ResponseWriter, r *http.Request) { handleReportTask(w, r, store, cfg) })
 	mux.HandleFunc("/tasks/list", func(w http.ResponseWriter, r *http.Request) { handleListTasks(w, r, store, cfg) })
+	mux.HandleFunc("/tasks/renew", func(w http.ResponseWriter, r *http.Request) { handleRenewTask(w, r, store, cfg) })
 
 	log.Printf("control-plane listening on %s", cfg.ListenAddr)
 	server := &http.Server{
@@ -286,6 +309,9 @@ func handleListDevices(w http.ResponseWriter, r *http.Request, registry *Registr
 }
 
 func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
+	if !requireLeader(w) {
+		return
+	}
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
@@ -347,6 +373,9 @@ func handleSubmitTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 }
 
 func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
+	if !requireLeader(w) {
+		return
+	}
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
@@ -432,6 +461,9 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 }
 
 func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
+	if !requireLeader(w) {
+		return
+	}
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
@@ -524,6 +556,47 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 	w.WriteHeader(http.StatusOK)
 }
 
+func handleRenewTask(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
+	if !requireLeader(w) {
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
+		return
+	}
+	if !checkAuth(r, cfg.APIToken) {
+		logAuthFail(r)
+		writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req struct {
+		ID        string `json:"id"`
+		ClaimedBy string `json:"claimed_by"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
+		return
+	}
+	store.mu.Lock()
+	t, ok := store.tasks[req.ID]
+	if !ok {
+		store.mu.Unlock()
+		writeError(w, http.StatusNotFound, "not_found", "task not found")
+		return
+	}
+	if t.ClaimedBy == "" || t.ClaimedBy != req.ClaimedBy {
+		store.mu.Unlock()
+		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
+		return
+	}
+	t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
+	t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	store.persistTask(*t)
+	store.mu.Unlock()
+	w.WriteHeader(http.StatusOK)
+}
+
 func handleListTasks(w http.ResponseWriter, r *http.Request, store *TaskStore, cfg Config) {
 	if !checkAuth(r, cfg.APIToken) {
 		logAuthFail(r)
@@ -600,7 +673,8 @@ func initDB(path string) *sql.DB {
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS leader_lease (
 		id TEXT PRIMARY KEY,
 		holder TEXT NOT NULL,
-		expires_at TEXT NOT NULL
+		expires_at TEXT NOT NULL,
+		token INTEGER DEFAULT 0
 	)`)
 	return db
 }
@@ -724,6 +798,14 @@ func pruneDevices(registry *Registry, cutoff time.Time) int {
 	return count
 }
 
+func requireLeader(w http.ResponseWriter) bool {
+	if leaderEnabled && !leaderActive {
+		writeError(w, http.StatusServiceUnavailable, "not_leader", "leader lease required")
+		return false
+	}
+	return true
+}
+
 func (s *TaskStore) loadFromLog() {
 	if s.logPath == "" {
 		return
@@ -844,38 +926,6 @@ func getHostname() string {
 		return "unknown"
 	}
 	return h
-}
-
-func acquireLeaderLease(db *sql.DB, leaderID string) bool {
-	if db == nil {
-		return false
-	}
-	expires := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
-	_, _ = db.Exec("INSERT OR IGNORE INTO leader_lease (id, holder, expires_at) VALUES ('primary', ?, ?)", leaderID, expires)
-	var holder string
-	var exp string
-	row := db.QueryRow("SELECT holder, expires_at FROM leader_lease WHERE id='primary'")
-	if err := row.Scan(&holder, &exp); err != nil {
-		return false
-	}
-	if holder == leaderID {
-		return true
-	}
-	t, err := time.Parse(time.RFC3339, exp)
-	if err != nil || time.Now().UTC().After(t) {
-		_, _ = db.Exec("UPDATE leader_lease SET holder=?, expires_at=? WHERE id='primary'", leaderID, expires)
-		return true
-	}
-	return false
-}
-
-func renewLeaderLease(db *sql.DB, leaderID string) {
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		expires := time.Now().UTC().Add(30 * time.Second).Format(time.RFC3339)
-		_, _ = db.Exec("UPDATE leader_lease SET expires_at=? WHERE id='primary' AND holder=?", expires, leaderID)
-	}
 }
 
 func logAuthFail(r *http.Request) {

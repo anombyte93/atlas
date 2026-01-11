@@ -26,6 +26,9 @@ type AgentConfig struct {
 	HeartbeatInterval int      `json:"heartbeat_interval_sec"`
 	TaskPollInterval  int      `json:"task_poll_interval_sec"`
 	WorldRepoPath     string   `json:"world_repo_path"`
+	AllowAllCommands  bool     `json:"allow_all_commands"`
+	AllowedCommands   []string `json:"allowed_commands"`
+	LeaseRenewSeconds int      `json:"lease_renew_seconds"`
 	Tags              []string `json:"tags"`
 	Permissions       struct {
 		ReadOnly    bool     `json:"read_only"`
@@ -237,6 +240,9 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 	}
 	var cmdStr string
 	if task.Type == "shell" {
+		if !isCommandAllowed(task.Command, cfg.AllowedCommands, cfg.AllowAllCommands || insecureAllowed()) {
+			return &TaskResult{ExitCode: 1, Stderr: "command not allowed"}, "failed"
+		}
 		cmdStr = task.Command
 	} else if task.Type == "script" {
 		if cfg.WorldRepoPath == "" {
@@ -262,10 +268,13 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 	} else {
 		cmd = exec.CommandContext(ctx, "sh", "-c", cmdStr)
 	}
+	stop := make(chan struct{})
+	go renewLeaseLoop(cfg, task, stop)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	close(stop)
 	exitCode := 0
 	if err != nil {
 		exitCode = 1
@@ -275,6 +284,28 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 		status = "failed"
 	}
 	return &TaskResult{ExitCode: exitCode, Stdout: stdout.String(), Stderr: stderr.String()}, status
+}
+
+func renewLeaseLoop(cfg AgentConfig, task Task, stop <-chan struct{}) {
+	interval := time.Duration(cfg.LeaseRenewSeconds) * time.Second
+	if interval <= 0 {
+		interval = 30 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-ticker.C:
+			payload := map[string]string{"id": task.ID, "claimed_by": cfg.ID}
+			_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/renew", payload, cfg.APIToken)
+		}
+	}
+}
+
+func insecureAllowed() bool {
+	return os.Getenv("ATLAS_INSECURE") == "1"
 }
 
 func postJSON(url string, payload any) error {

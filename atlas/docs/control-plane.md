@@ -57,3 +57,4 @@ curl --cacert ca.pem --cert client.pem --key client.key https://localhost:8080/h
 
 ## Leader Lease
 - `leader_lease_enabled` uses a SQLite lease to avoid multiple schedulers.
+- `leader_lease_seconds` and `leader_renew_seconds` control TTL and renew cadence.
