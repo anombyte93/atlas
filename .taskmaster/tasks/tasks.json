@@ -1,0 +1,870 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Clarify Atlas OS implementation choices and workflow constraints",
+        "description": "Capture decisions on language/runtime for node agent and control plane, log storage backend, and minimum device support to align the build workflow with the PRD's phased plan.",
+        "details": "Document decisions for: node agent language (Go/Python), control plane hosting model, logging storage (JSONL vs DB), minimum OS targets, and initial device roles. Record in a short decisions doc under atlas/docs or root-level notes.",
+        "testStrategy": "Acceptance: decisions recorded and referenced by subsequent tasks.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Research and document node agent language options",
+            "description": "Analyze and document trade-offs between Go and Python for the Atlas node agent, focusing on cross-platform support (Linux, macOS, Windows), resource efficiency (memory footprint, CPU usage), cold start time, binary distribution, ecosystem maturity for system monitoring/task execution, and development velocity. Consider implications for the AI logging wrapper (Task 7) and task execution API (Task 6).",
+            "dependencies": [],
+            "details": "Details: Analyze and document trade-offs between Go and Python for the Atlas node agent, focusing on cross-platform support (Linux, macOS, Windows), resource efficiency (memory footprint, CPU usage), cold start time, binary distribution, ecosystem maturity for system monitoring/task execution, and development velocity. Consider implications for the AI logging wrapper (Task 7) and task execution API (Task 6).",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Define control plane hosting model architecture",
+            "description": "Specify the control plane architecture pattern, including hosting model (self-hosted vs cloud-optional), scaling approach (single-master vs HA), service discovery mechanism for multi-device federation (Task 10), and API surface (REST/gRPC). Address whether control plane runs on one designated device or separately.",
+            "dependencies": [],
+            "details": "Details: Specify the control plane architecture pattern, including hosting model (self-hosted vs cloud-optional), scaling approach (single-master vs HA), service discovery mechanism for multi-device federation (Task 10), and API surface (REST/gRPC). Address whether control plane runs on one designated device or separately.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Specify logging storage backend decision matrix",
+            "description": "Evaluate and document the logging storage backend choice between JSONL files and database solutions (SQLite, PostgreSQL, time-series DB) for AI interaction logs. Analyze write performance, query capabilities, storage growth projections, backup/sync complexity across devices, and maintenance overhead. Consider both single-device and federated scenarios (Task 10).",
+            "dependencies": [],
+            "details": "Details: Evaluate and document the logging storage backend choice between JSONL files and database solutions (SQLite, PostgreSQL, time-series DB) for AI interaction logs. Analyze write performance, query capabilities, storage growth projections, backup/sync complexity across devices, and maintenance overhead. Consider both single-device and federated scenarios (Task 10).",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Define minimum device support matrix and initial device role taxonomy",
+            "description": "Document minimum OS/platform targets for Phase 1 (Linux distros, macOS versions, Windows support level) and define initial device role taxonomy (primary/secondary, compute/storage, agent host types). Specify bootstrap requirements and capability tag schema for task routing (Task 6).",
+            "dependencies": [],
+            "details": "Details: Document minimum OS/platform targets for Phase 1 (Linux distros, macOS versions, Windows support level) and define initial device role taxonomy (primary/secondary, compute/storage, agent host types). Specify bootstrap requirements and capability tag schema for task routing (Task 6).",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into: 1) Research and document node agent language options (Go vs Python trade-offs for cross-platform support, resource efficiency, and ecosystem), 2) Define control plane hosting model architecture (centralized vs distributed, scaling considerations), 3) Specify logging storage backend decision matrix (JSONL vs database with performance/maintenance analysis), 4) Define minimum device support matrix and initial device role taxonomy",
+        "updatedAt": "2026-01-11T05:02:51.838Z"
+      },
+      {
+        "id": "2",
+        "title": "Scaffold Atlas world repo structure and config schemas",
+        "description": "Create the initial world model directory layout and baseline configuration schemas defined in the PRD.",
+        "details": "Create atlas/config, atlas/agents, atlas/services, atlas/policies, atlas/logging, atlas/docs, atlas/logs. Add minimal schema files (YAML/JSON + Markdown) for devices, agents, services, policies, and logging events.",
+        "testStrategy": "Verify directory structure exists and schemas validate basic examples.",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Directory Structure & .gitignore",
+            "description": "Foundation setup",
+            "dependencies": [],
+            "details": "Details: Foundation setup",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Device Schema",
+            "description": "Capabilities, roles, metadata",
+            "dependencies": [],
+            "details": "Details: Capabilities, roles, metadata",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Agent Schema",
+            "description": "Permissions, resources, heartbeats",
+            "dependencies": [],
+            "details": "Details: Permissions, resources, heartbeats",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Service Schema",
+            "description": "Endpoints, dependencies, health checks",
+            "dependencies": [],
+            "details": "Details: Endpoints, dependencies, health checks",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Policy Schema",
+            "description": "Rules, constraints, scope, RBAC/ABAC",
+            "dependencies": [],
+            "details": "Details: Rules, constraints, scope, RBAC/ABAC",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Logging Event Schema",
+            "description": "World-state tracking, audit trails, JSONL compatibility",
+            "dependencies": [],
+            "details": "Details: World-state tracking, audit trails, JSONL compatibility",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Expand into: 1) Create directory structure with proper permissions and .gitignore, 2) Define device schema (YAML/JSON) with required fields (id, capabilities, roles), 3) Define agent schema (config, permissions, resources), 4) Define service schema (endpoints, dependencies, health checks), 5) Define policy schema (rules, constraints, scope), 6) Create logging event schema with metadata fields for world-state tracking"
+      },
+      {
+        "id": "3",
+        "title": "Bootstrap script for new devices",
+        "description": "Provide a minimal script to clone/apply the world repo and register a device with the control plane.",
+        "details": "Script should clone the repo, apply per-device overrides, and generate/register a device ID. Include usage docs in atlas/docs.",
+        "testStrategy": "Dry-run on a local folder shows expected output and config placement.",
+        "priority": "medium",
+        "dependencies": [
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
+            "description": "Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
+            "dependencies": [],
+            "details": "Details: Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
+            "description": "Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
+            "dependencies": [],
+            "details": "Details: Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
+            "description": "Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
+            "dependencies": [],
+            "details": "Details: Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break into: 1) Design script interface and CLI arguments (repo URL, device type, config overrides), 2) Implement repo clone and world repo initialization logic, 3) Build per-device config override system (template rendering or file merging), 4) Create device ID generation and registration logic with collision handling, 5) Add comprehensive usage documentation and error handling for common failure scenarios"
+      },
+      {
+        "id": "4",
+        "title": "Node agent skeleton (per-device daemon/CLI)",
+        "description": "Implement a minimal node agent capable of reading local config, identifying device capabilities, and exposing a basic interface to the control plane.",
+        "details": "Include device ID generation, capability discovery (OS/CPU/GPU), and a heartbeat loop. Keep filesystem roots read-only by default.",
+        "testStrategy": "Start agent locally and confirm it emits a heartbeat payload and capabilities snapshot.",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Project Structure & Dependency Management",
+            "description": "Medium | 4-6",
+            "dependencies": [],
+            "details": "Details: Medium | 4-6",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Device ID Generation & Persistence",
+            "description": "Medium | 5-8",
+            "dependencies": [],
+            "details": "Details: Medium | 5-8",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Capability Discovery System",
+            "description": "High | 8-12",
+            "dependencies": [],
+            "details": "Details: High | 8-12",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Config Loading & Validation",
+            "description": "Medium | 5-7",
+            "dependencies": [],
+            "details": "Details: Medium | 5-7",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Heartbeat Loop Implementation",
+            "description": "High | 8-10",
+            "dependencies": [],
+            "details": "Details: High | 8-10",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Control Plane Communication Interface",
+            "description": "High | 7-10",
+            "dependencies": [],
+            "details": "Details: High | 7-10",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Read-Only Filesystem Enforcement",
+            "description": "Medium-High | 6-9",
+            "dependencies": [],
+            "details": "Details: Medium-High | 6-9",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Logging & Status Reporting",
+            "description": "Medium | 5-8",
+            "dependencies": [],
+            "details": "Details: Medium | 5-8",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 8,
+        "expansionPrompt": "Expand into: 1) Set up project structure and dependency management for chosen language, 2) Implement device ID generation and persistence (file-based, collision-resistant), 3) Build capability discovery system (OS detection, CPU info, GPU detection via system APIs), 4) Create config loading and validation from world repo schemas, 5) Implement heartbeat loop with exponential backoff and error handling, 6) Build control plane communication interface (HTTP/gRPC client), 7) Add read-only filesystem enforcement logic, 8) Create comprehensive logging and status reporting"
+      },
+      {
+        "id": "5",
+        "title": "Control plane registry service (single-node MVP)",
+        "description": "Create a minimal Atlas Core service that registers devices and exposes a registry API for discovery.",
+        "details": "Implement endpoints for register, heartbeat, list devices. Load config from world repo and support hot reload on change.",
+        "testStrategy": "Register a local node agent and list devices via CLI or curl.",
+        "priority": "high",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
+            "description": "5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
+            "dependencies": [],
+            "details": "Details: 5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
+            "description": "5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
+            "dependencies": [],
+            "details": "Details: 5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
+            "description": "5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
+            "dependencies": [],
+            "details": "Details: 5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
+            "description": "5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
+            "dependencies": [],
+            "details": "Details: 5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
+            "description": "5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
+            "dependencies": [],
+            "details": "Details: 5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
+            "description": "5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
+            "dependencies": [],
+            "details": "Details: 5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
+            "description": "5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
+            "dependencies": [],
+            "details": "Details: 5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 7,
+        "expansionPrompt": "Break into: 1) Design API endpoints and data models (register, heartbeat, list devices, get device), 2) Set up web server framework and routing with middleware for logging/auth, 3) Implement in-memory registry with thread-safe operations, 4) Build config loading from world repo with hot-reload on file changes, 5) Create device registration logic with validation and duplicate handling, 6) Implement heartbeat processing and device health tracking, 7) Add comprehensive error handling and API documentation"
+      },
+      {
+        "id": "6",
+        "title": "Task execution API (v1 minimal)",
+        "description": "Provide basic task routing and execution across nodes.",
+        "details": "Support run shell command and run script-from-repo. Scheduler chooses a node based on capability tags.",
+        "testStrategy": "Submit a task and confirm execution result on the selected node.",
+        "priority": "medium",
+        "dependencies": [
+          "5"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Task schema & state machine",
+            "description": "Foundation: defines task model and execution states | 2-4h",
+            "dependencies": [],
+            "details": "Details: Foundation: defines task model and execution states | 2-4h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Scheduler with tag matching",
+            "description": "Routes tasks to capable nodes via registry (Task 5) | 3-6h",
+            "dependencies": [],
+            "details": "Details: Routes tasks to capable nodes via registry (Task 5) | 3-6h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Queue & state persistence",
+            "description": "Buffers tasks and tracks lifecycle | 2-4h",
+            "dependencies": [],
+            "details": "Details: Buffers tasks and tracks lifecycle | 2-4h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Shell execution with timeout",
+            "description": "Safely executes commands with output capture | 3-5h",
+            "dependencies": [],
+            "details": "Details: Safely executes commands with output capture | 3-5h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Script fetching from repo",
+            "description": "Validates and executes repo-stored scripts | 3-5h",
+            "dependencies": [],
+            "details": "Details: Validates and executes repo-stored scripts | 3-5h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Result reporting & cleanup",
+            "description": "Collects results, reports via API, prunes old tasks | 4-6h",
+            "dependencies": [],
+            "details": "Details: Collects results, reports via API, prunes old tasks | 4-6h",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Expand into: 1) Design task schema and execution flow (submitted → queued → running → completed/failed), 2) Implement basic scheduler with capability tag matching logic, 3) Create task queue and state management, 4) Build shell command execution with timeout and output capture, 5) Implement script-from-repo fetching and validation, 6) Add result reporting and error handling with proper cleanup"
+      },
+      {
+        "id": "7",
+        "title": "AI logging wrapper with metadata capture",
+        "description": "Implement provider-agnostic logging wrapper capturing model, context refs, device, agent, and world-state identifiers.",
+        "details": "Define log schema in atlas/logging, add wrapper hooks for provider calls, and include context references.",
+        "testStrategy": "Trigger a sample AI call and verify log entry contains world_commit, branch, device_id, agent_id, tool, and context_refs.",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Comprehensive Log Schema",
+            "description": "Define JSONL schema with model, context_refs, device_id, agent_id, world_commit, tokens, and extensibility",
+            "dependencies": [],
+            "details": "Details: Define JSONL schema with model, context_refs, device_id, agent_id, world_commit, tokens, and extensibility",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create Provider-Agnostic Wrapper Interface",
+            "description": "Build adapter pattern for Claude, OpenAI, and generic providers",
+            "dependencies": [],
+            "details": "Details: Build adapter pattern for Claude, OpenAI, and generic providers",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement Context Capture at Call Time",
+            "description": "Auto-capture git state, device info, agent config with <10ms latency",
+            "dependencies": [],
+            "details": "Details: Auto-capture git state, device info, agent config with <10ms latency",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add Middleware/Interceptor Pattern",
+            "description": "Decorator-based logging integration with single-line code changes",
+            "dependencies": [],
+            "details": "Details: Decorator-based logging integration with single-line code changes",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create Unit Tests for Metadata Extraction",
+            "description": "Comprehensive test suite validating schema, adapters, context, and E2E scenarios",
+            "dependencies": [],
+            "details": "Details: Comprehensive test suite validating schema, adapters, context, and E2E scenarios",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break into: 1) Design comprehensive log schema (model, context_refs, device_id, agent_id, world_commit, branch, timestamp, tokens, etc.), 2) Create provider-agnostic wrapper interface for common AI SDK patterns, 3) Implement context capture (git state, device info, agent config) at call time, 4) Add middleware/interceptor pattern for automatic logging with minimal code changes, 5) Create unit tests for metadata extraction and log formatting"
+      },
+      {
+        "id": "8",
+        "title": "Structured log storage (JSONL + query helpers)",
+        "description": "Persist AI logs in a queryable format and add simple CLI/query helpers.",
+        "details": "Store logs under atlas/logs as JSONL; add basic filter/search script for device/agent/time.",
+        "testStrategy": "Run a query for a known entry and confirm it returns expected log lines.",
+        "priority": "medium",
+        "dependencies": [
+          "7"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design JSONL format & rotation strategy",
+            "description": "High | 2-3h | —",
+            "dependencies": [],
+            "details": "Details: High | 2-3h | —",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement append-only log writer with file locking",
+            "description": "High | 4-5h | 8.1",
+            "dependencies": [],
+            "details": "Details: High | 4-5h | 8.1",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create query CLI with device/agent/time filters",
+            "description": "Medium | 3-4h | 8.2",
+            "dependencies": [],
+            "details": "Details: Medium | 3-4h | 8.2",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Add aggregation helpers (stats, latency, errors)",
+            "description": "Medium | 2-3h | 8.2",
+            "dependencies": [],
+            "details": "Details: Medium | 2-3h | 8.2",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Expand into: 1) Design JSONL file format and rotation strategy (size/time-based), 2) Implement append-only log writer with proper file locking and atomic writes, 3) Create query CLI with filters (device, agent, time range, model), 4) Add basic aggregation helpers (count by agent, latency stats, error rates)"
+      },
+      {
+        "id": "9",
+        "title": "Atlas CLI commands for status, devices, logs",
+        "description": "Create a CLI interface for atlas init/status/devices/logs tail.",
+        "details": "Implement commands with clear output; integrate with control plane and logging store.",
+        "testStrategy": "Run `atlas status`, `atlas devices`, and `atlas logs tail` locally and verify output.",
+        "priority": "medium",
+        "dependencies": [
+          "5",
+          "8"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design CLI Framework & Command Structure",
+            "description": "Design CLI Framework & Command Structure",
+            "dependencies": [],
+            "details": "Details: Design CLI Framework & Command Structure",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement `atlas init` Bootstrap Command",
+            "description": "Implement `atlas init` Bootstrap Command",
+            "dependencies": [],
+            "details": "Details: Implement `atlas init` Bootstrap Command",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement `atlas status` Command",
+            "description": "Implement `atlas status` Command",
+            "dependencies": [],
+            "details": "Details: Implement `atlas status` Command",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement `atlas devices` Command with Filtering",
+            "description": "Implement `atlas devices` Command with Filtering",
+            "dependencies": [],
+            "details": "Details: Implement `atlas devices` Command with Filtering",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Implement `atlas logs tail` with Real-Time Streaming",
+            "description": "Implement `atlas logs tail` with Real-Time Streaming",
+            "dependencies": [],
+            "details": "Details: Implement `atlas logs tail` with Real-Time Streaming",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Add Help Text, Examples, and Shell Completion",
+            "description": "Add Help Text, Examples, and Shell Completion",
+            "dependencies": [],
+            "details": "Details: Add Help Text, Examples, and Shell Completion",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 6,
+        "expansionPrompt": "Break into: 1) Design CLI interface and command structure (using Cobra/clik or similar framework), 2) Implement 'atlas init' bootstrap command with interactive setup, 3) Create 'atlas status' showing registry health and device counts, 4) Build 'atlas devices' with filtering and detailed views, 5) Implement 'atlas logs tail' with real-time streaming and filters, 6) Add comprehensive help text, examples, and shell completion"
+      },
+      {
+        "id": "10",
+        "title": "Multi-device federation and config sync",
+        "description": "Enable a second device to join Atlas with config sync and capability registration.",
+        "details": "Use Git + optional chezmoi overlays for per-device config. Document bootstrap steps for a new node.",
+        "testStrategy": "Simulate a second device config and confirm it registers with control plane.",
+        "priority": "medium",
+        "dependencies": [
+          "3",
+          "5"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design per-device config overlay system",
+            "description": "High | Architecture decision (Git branches vs chezmoi vs custom overlays)",
+            "dependencies": [],
+            "details": "Details: High | Architecture decision (Git branches vs chezmoi vs custom overlays)",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement config sync mechanism",
+            "description": "High | Pull-based polling with conflict detection and eventual consistency",
+            "dependencies": [],
+            "details": "Details: High | Pull-based polling with conflict detection and eventual consistency",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Device registration with auto-discovery",
+            "description": "High | Capability detection, role assignment, auth token generation",
+            "dependencies": [],
+            "details": "Details: High | Capability detection, role assignment, auth token generation",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Conflict detection and resolution",
+            "description": "Medium | Handle concurrent writes, audit trails, LWW strategy",
+            "dependencies": [],
+            "details": "Details: Medium | Handle concurrent writes, audit trails, LWW strategy",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Multi-device setup docs & troubleshooting",
+            "description": "Medium | User walkthrough, diagnostic commands, common failure scenarios",
+            "dependencies": [],
+            "details": "Details: Medium | User walkthrough, diagnostic commands, common failure scenarios",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Expand into: 1) Design per-device config overlay system (Git branches, chezmoi templates, or custom merging), 2) Implement config sync mechanism (pull-based polling, git hooks, or push notifications), 3) Create device registration flow with capability auto-discovery and role assignment, 4) Build conflict detection and resolution for concurrent config changes, 5) Document multi-device setup walkthrough with troubleshooting guide"
+      },
+      {
+        "id": "11",
+        "title": "Context/decision graph prototype",
+        "description": "Generate a basic context graph from logs to answer \"what context was used\" queries.",
+        "details": "Implement a script that builds a simple graph (nodes: runs, files, devices; edges: used-in/produced-by).",
+        "testStrategy": "Run the script and verify it produces a graph output file and simple query results.",
+        "priority": "low",
+        "dependencies": [
+          "8"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design graph data model and entity schemas",
+            "description": "Define the complete graph data model including node types, edge types, and their attributes with JSON schema definitions",
+            "dependencies": [],
+            "details": "Create schemas for nodes: Run (id, timestamp, device, model, context_size), File (path, hash, size, created_at), Device (id, hostname, role), Model (name, provider, version). Edge types: used_in (file→run), produced_by (file→run), preceded_by (run→run). Store schemas in atlas/config/graph-schemas.json. Include validation rules and examples.",
+            "status": "pending",
+            "testStrategy": "Validate schemas using jsonschema Python library against example entities; document schema in graph-model.md",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement JSONL log parser for graph entity extraction",
+            "description": "Build a parser that reads atlas/logs/*.jsonl files and extracts graph entities and relationships",
+            "dependencies": [
+              1
+            ],
+            "details": "Create atlas/services/log_parser.py with functions: parse_log_file(filepath) returns List[Entity], extract_relationships(events) returns List[Edge]. Handle log formats: context_used, file_created, run_completed. Map log event fields to graph schema attributes. Handle malformed entries gracefully with error logging. Output structured data ready for graph construction.",
+            "status": "pending",
+            "testStrategy": "Create sample JSONL log file with 10-20 events; verify parser extracts correct entities and relationships; unit test with pytest",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement graph storage and query engine",
+            "description": "Build graph representation using NetworkX with file-based persistence and query API",
+            "dependencies": [
+              2
+            ],
+            "details": "Create atlas/services/context_graph.py: class ContextGraph with methods add_node(), add_edge(), save_graph(path), load_graph(path). Use NetworkX MultiDiGraph for directed multi-edges. Implement query methods: get_context_for_run(run_id), get_produced_files(run_id), get_run_history(file_path). Store graph as .graphml and nodes/edges as .jsonl for portability. Add CLI interface: atlas-query --context <run_id>.",
+            "status": "pending",
+            "testStrategy": "Load sample data, verify persistence (save/load cycle), test all query methods against known graph state",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create graph visualization and export functionality",
+            "description": "Implement multiple export formats for graph visualization including GraphViz DOT, JSON, and ASCII",
+            "dependencies": [
+              3
+            ],
+            "details": "Add export methods to ContextGraph: export_dot(filepath) generates GraphViz DOT with subgraphs for each entity type, color-coded edges; export_json(filepath) dumps nodes/edges as structured JSON; export_ascii(filepath) creates simple text visualization. Create atlas/services/graph_viz.py with layout helpers. Add CLI: atlas-export --format dot|json|ascii --output <path>. Include sample generated outputs in atlas/docs/graph-examples/",
+            "status": "pending",
+            "testStrategy": "Generate all three formats from sample graph; verify DOT renders with dot/xdot; validate JSON schema; check ASCII readability",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create integration test suite and documentation",
+            "description": "Build end-to-end tests and documentation for the context graph system",
+            "dependencies": [
+              4
+            ],
+            "details": "Create tests/test_context_graph.py with: test_full_pipeline() (parse→build→query→export), test_query_accuracy() (verify context chains), test_large_graph() (1000+ nodes performance). Write atlas/docs/context-graph.md covering: architecture, data model, usage examples, query patterns, troubleshooting. Add quickstart example: atlas/scripts/build_demo_graph.sh generates sample graph from synthetic logs. Include integration with existing atlas logging if available.",
+            "status": "pending",
+            "testStrategy": "Run full test suite with pytest -v; verify documentation examples execute successfully; demo script produces valid output",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Break into: 1) Design graph data model (nodes: runs, files, devices, models; edges: used-in, produced-by, preceded-by), 2) Implement log parser to extract graph entities and relationships from JSONL logs, 3) Choose graph representation (adjacency list, networkx, or custom) and storage format, 4) Build graph query API (what context was used for X? what did file Y produce?), 5) Create visualization export (graphviz DOT, JSON, or simple ASCII)"
+      },
+      {
+        "id": "12",
+        "title": "Hardening and device bootstrap docs",
+        "description": "Document security, key management, and recovery steps for v1 readiness.",
+        "details": "Create docs covering key storage, secure registration, failure recovery, and minimal runbook for device replacement.",
+        "testStrategy": "Docs reviewed and linked from atlas/docs index.",
+        "priority": "low",
+        "dependencies": [
+          "9",
+          "10"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Document Key Management Strategy",
+            "description": "Document Key Management Strategy",
+            "dependencies": [],
+            "details": "Details: Document Key Management Strategy",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create Secure Registration Checklist",
+            "description": "Create Secure Registration Checklist",
+            "dependencies": [],
+            "details": "Details: Create Secure Registration Checklist",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Write Failure Recovery Runbooks",
+            "description": "Write Failure Recovery Runbooks",
+            "dependencies": [],
+            "details": "Details: Write Failure Recovery Runbooks",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Document Security Hardening Steps",
+            "description": "Document Security Hardening Steps",
+            "dependencies": [],
+            "details": "Details: Document Security Hardening Steps",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create Troubleshooting Guide",
+            "description": "Create Troubleshooting Guide",
+            "dependencies": [],
+            "details": "Details: Create Troubleshooting Guide",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Expand into: 1) Document key management strategy (generation, storage, rotation, revocation), 2) Create secure registration checklist (TLS, authentication, device attestation), 3) Write failure recovery runbooks (device replacement, data recovery, rollback procedures), 4) Document security hardening steps (firewall rules, least privilege, audit logging), 5) Create troubleshooting guide with common issues and diagnostic commands"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-01-11T05:02:51.839Z",
+      "taskCount": 12,
+      "completedCount": 1,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}
