@@ -6,6 +6,7 @@
 - Models: `deepseek-chat` (non-thinking) and `deepseek-reasoner` (thinking).
 - `deepseek-reasoner` returns `reasoning_content` alongside `content`; do not append `reasoning_content` into future turns.
 - Thinking mode has unsupported parameters (e.g., temperature/top_p) that are ignored or rejected.
+- `deepseek-reasoner` does not support function calling; use `deepseek-chat` for tool calls.
 - For production: avoid sending sensitive data; use data minimization and redact logs.
 
 ## Usage (conceptual)
