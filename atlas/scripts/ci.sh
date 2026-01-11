@@ -8,7 +8,7 @@ pushd "$ROOT_DIR/atlas/services/control-plane" >/dev/null
 popd >/dev/null
 
 pushd "$ROOT_DIR/atlas/agents/node-agent" >/dev/null
-  go build ./cmd/node-agent
+  go build -o ./bin/node-agent ./cmd/node-agent
 popd >/dev/null
 
 "$ROOT_DIR/atlas/scripts/smoke_test.sh"

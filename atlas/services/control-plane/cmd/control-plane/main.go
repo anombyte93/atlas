@@ -121,7 +121,7 @@ func main() {
 	auditLogger = audit
 	if cfg.LeaderLeaseEnabled {
 		if cfg.LeaderID == "" {
-			cfg.LeaderID = hostname()
+			cfg.LeaderID = getHostname()
 		}
 		ok := acquireLeaderLease(db, cfg.LeaderID)
 		if !ok {
@@ -801,6 +801,14 @@ func rotateIfNeeded(path string) {
 	}
 	ts := time.Now().UTC().Format("20060102-150405")
 	_ = os.Rename(path, path+"."+ts)
+}
+
+func getHostname() string {
+	h, _ := os.Hostname()
+	if h == "" {
+		return "unknown"
+	}
+	return h
 }
 
 func acquireLeaderLease(db *sql.DB, leaderID string) bool {
