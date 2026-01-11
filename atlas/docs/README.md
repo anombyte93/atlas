@@ -14,3 +14,5 @@
 - task-execution.md
 - errors.md
 - ci.md
+- device-registry.md
+- ha-roadmap.md

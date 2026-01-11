@@ -8,6 +8,8 @@ Source: Perplexity deep-research critique outputs (see `.taskmaster/reports/perp
 - **Impact:** correlated request storms, global outages, thundering herd on recovery.
 - **Mitigation:** backpressure, rate limits, jittered agent polling, circuit breakers, crash recovery, SLOs.
 - **Owner Tasks:** 5, 6, 9, 12
+ - **Status:** Still open; HA roadmap documented.
+ - **Note:** Device registry persistence added (SQLite), but HA still unresolved.
 
 2) **No durable task queue**
 - **Impact:** task loss, state corruption, inconsistent retries.
@@ -37,6 +39,7 @@ Source: Perplexity deep-research critique outputs (see `.taskmaster/reports/perp
 - **Impact:** OS-specific failures in production.
 - **Mitigation:** OS/role test matrix, failure injection, integration tests.
 - **Owner Tasks:** 4, 5, 6, 11
+ - **Status:** Smoke test added; full matrix still pending.
 
 7) **Dependency/version skew**
 - **Impact:** agent-control plane incompatibility.

@@ -88,6 +88,11 @@ type TaskStore struct {
 }
 
 var auditLogger *AuditLogger
+var deviceStore *DeviceStore
+
+type DeviceStore struct {
+	db *sql.DB
+}
 
 func main() {
 	cfg := loadConfig("../../config/control-plane.json")
@@ -106,11 +111,13 @@ func main() {
 	_ = os.MkdirAll(cfg.DataDir, 0o755)
 	registry := &Registry{devices: map[string]*Device{}}
 	db := initDB(filepath.Join(cfg.DataDir, "tasks.db"))
+	deviceStore = &DeviceStore{db: db}
 	audit := &AuditLogger{logPath: filepath.Join(cfg.DataDir, "audit.jsonl")}
 	auditLogger = audit
 	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl"), db: db, audit: audit}
 	store.loadFromLog()
 	store.loadFromDB()
+	loadDevicesFromDB(registry)
 
 	go watchConfig(cfg.ConfigPath, func() {
 		newCfg := loadConfig(cfg.ConfigPath)
@@ -211,6 +218,7 @@ func handleRegister(w http.ResponseWriter, r *http.Request, registry *Registry, 
 	registry.mu.Lock()
 	registry.devices[payload.DeviceID] = &payload
 	registry.mu.Unlock()
+	persistDevice(payload)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -238,6 +246,7 @@ func handleHeartbeat(w http.ResponseWriter, r *http.Request, registry *Registry,
 	if dev, ok := registry.devices[payload.DeviceID]; ok {
 		dev.LastSeen = payload.Timestamp
 		dev.Capabilities = payload.Capabilities
+		persistDevice(*dev)
 	}
 	registry.mu.Unlock()
 	w.WriteHeader(http.StatusOK)
@@ -516,6 +525,11 @@ func initDB(path string) *sql.DB {
 	)`)
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN lease_expiries INTEGER")
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN next_eligible TEXT")
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS devices (
+		id TEXT PRIMARY KEY,
+		json TEXT NOT NULL,
+		last_seen TEXT
+	)`)
 	return db
 }
 
@@ -557,6 +571,42 @@ func (s *TaskStore) loadFromDB() {
 			continue
 		}
 		s.tasks[t.ID] = &t
+	}
+}
+
+func persistDevice(d Device) {
+	if deviceStore == nil || deviceStore.db == nil {
+		return
+	}
+	b, _ := json.Marshal(d)
+	_, _ = deviceStore.db.Exec(`INSERT INTO devices (id, json, last_seen)
+		VALUES (?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET json=excluded.json, last_seen=excluded.last_seen`,
+		d.DeviceID, string(b), d.LastSeen)
+}
+
+func loadDevicesFromDB(registry *Registry) {
+	if deviceStore == nil || deviceStore.db == nil {
+		return
+	}
+	rows, err := deviceStore.db.Query("SELECT json FROM devices")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var raw string
+		if err := rows.Scan(&raw); err != nil {
+			continue
+		}
+		var d Device
+		if err := json.Unmarshal([]byte(raw), &d); err != nil {
+			continue
+		}
+		if d.DeviceID == "" {
+			continue
+		}
+		registry.devices[d.DeviceID] = &d
 	}
 }
 

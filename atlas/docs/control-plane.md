@@ -49,3 +49,7 @@ curl --cacert ca.pem --cert client.pem --key client.key https://localhost:8080/h
 ```
 ./atlas/scripts/smoke_test.sh
 ```
+
+## Device Registry
+- Device registrations are persisted to SQLite (`tasks.db`).
+- See `atlas/docs/device-registry.md`.
