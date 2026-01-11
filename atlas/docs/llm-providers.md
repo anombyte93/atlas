@@ -2,7 +2,8 @@
 
 ## DeepSeek (Cloud)
 - Use the official OpenAI-compatible API endpoint.
-- Models: deepseek-chat, deepseek-reasoner.
+- Base URL: `https://api.deepseek.com` (or `https://api.deepseek.com/v1` for compatibility).
+- Models: `deepseek-chat` (non-thinking) and `deepseek-reasoner` (thinking).
 - For production: avoid sending sensitive data; use data minimization and redact logs.
 
 ## Usage (conceptual)

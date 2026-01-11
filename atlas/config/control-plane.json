@@ -8,5 +8,6 @@
   "tls_cert_path": "",
   "tls_key_path": "",
   "ca_cert_path": "",
-  "device_ttl_hours": 0
+  "device_ttl_hours": 0,
+  "device_prune_interval_minutes": 60
 }

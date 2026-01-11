@@ -1,0 +1,9 @@
+{
+  "providers": {
+    "deepseek": {
+      "base_url": "https://api.deepseek.com",
+      "models": ["deepseek-chat", "deepseek-reasoner"],
+      "api_key_env": "DEEPSEEK_API_KEY"
+    }
+  }
+}

@@ -17,3 +17,4 @@
 - device-registry.md
 - ha-roadmap.md
 - llm-providers.md
+- provider-policy.md
