@@ -204,6 +204,7 @@ type Task struct {
 	TimeoutSec    int         `json:"timeout_sec"`
 	RequiredTags  []string    `json:"required_tags,omitempty"`
 	ClaimedBy     string      `json:"claimed_by,omitempty"`
+	ClaimToken    string      `json:"claim_token,omitempty"`
 	Result        *TaskResult `json:"result,omitempty"`
 }
 
@@ -230,6 +231,7 @@ func pollAndExecute(cfg AgentConfig) {
 	task.Status = status
 	task.Result = result
 	task.ClaimedBy = cfg.ID
+	// preserve claim token returned by control plane
 	_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
 }
 
@@ -298,7 +300,7 @@ func renewLeaseLoop(cfg AgentConfig, task Task, stop <-chan struct{}) {
 		case <-stop:
 			return
 		case <-ticker.C:
-			payload := map[string]string{"id": task.ID, "claimed_by": cfg.ID}
+			payload := map[string]string{"id": task.ID, "claimed_by": cfg.ID, "claim_token": task.ClaimToken}
 			_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/renew", payload, cfg.APIToken)
 		}
 	}

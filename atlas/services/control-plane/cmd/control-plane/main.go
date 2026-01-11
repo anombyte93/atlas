@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -68,6 +70,7 @@ type Task struct {
 	TimeoutSec    int         `json:"timeout_sec"`
 	RequiredTags  []string    `json:"required_tags,omitempty"`
 	ClaimedBy     string      `json:"claimed_by,omitempty"`
+	ClaimToken    string      `json:"claim_token,omitempty"`
 	LeaseUntil    string      `json:"lease_until,omitempty"`
 	Attempts      int         `json:"attempts,omitempty"`
 	MaxAttempts   int         `json:"max_attempts,omitempty"`
@@ -448,6 +451,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			}
 			t.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 			t.ClaimedBy = req.AgentID
+			t.ClaimToken = randToken()
 			t.LeaseUntil = time.Now().UTC().Add(2 * time.Minute).Format(time.RFC3339)
 			store.appendEvent(*t)
 			store.persistTask(*t)
@@ -490,7 +494,7 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		writeError(w, http.StatusNotFound, "not_found", "task not found")
 		return
 	}
-	if t.ClaimedBy == "" || t.ClaimedBy != report.ClaimedBy {
+	if t.ClaimedBy == "" || t.ClaimedBy != report.ClaimedBy || t.ClaimToken == "" || t.ClaimToken != report.ClaimToken {
 		store.mu.Unlock()
 		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
 		return
@@ -534,6 +538,7 @@ func handleReportTask(w http.ResponseWriter, r *http.Request, store *TaskStore, 
 		t.Attempts += 1
 		t.NextEligible = time.Now().UTC().Add(retryBackoff(t.Attempts)).Format(time.RFC3339)
 		t.ClaimedBy = ""
+		t.ClaimToken = ""
 		t.LeaseUntil = ""
 		if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
 			t.Status = string(StateFailed)
@@ -571,8 +576,9 @@ func handleRenewTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var req struct {
-		ID        string `json:"id"`
-		ClaimedBy string `json:"claimed_by"`
+		ID         string `json:"id"`
+		ClaimedBy  string `json:"claimed_by"`
+		ClaimToken string `json:"claim_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_json", "malformed request body")
@@ -585,7 +591,7 @@ func handleRenewTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		writeError(w, http.StatusNotFound, "not_found", "task not found")
 		return
 	}
-	if t.ClaimedBy == "" || t.ClaimedBy != req.ClaimedBy {
+	if t.ClaimedBy == "" || t.ClaimedBy != req.ClaimedBy || t.ClaimToken == "" || t.ClaimToken != req.ClaimToken {
 		store.mu.Unlock()
 		writeError(w, http.StatusUnauthorized, "unauthorized", "claim mismatch")
 		return
@@ -728,7 +734,18 @@ func (s *TaskStore) loadFromDB() {
 			continue
 		}
 		s.tasks[t.ID] = &t
-		if t.Status == "queued" {
+		if t.Status == string(StateRunning) && leaseExpired(t.LeaseUntil) {
+			if next, ok := transition(StateRunning, EventLeaseExpire); ok {
+				t.Status = string(next)
+				t.ClaimedBy = ""
+				t.ClaimToken = ""
+				t.LeaseUntil = ""
+				if t.MaxAttempts > 0 && t.Attempts >= t.MaxAttempts {
+					t.Status = string(StateFailed)
+				}
+			}
+		}
+		if t.Status == string(StateQueued) {
 			s.queued[t.ID] = struct{}{}
 		}
 	}
@@ -796,7 +813,10 @@ func pruneDevices(registry *Registry, cutoff time.Time) int {
 	registry.mu.Lock()
 	for id, d := range registry.devices {
 		t, err := time.Parse(time.RFC3339, d.LastSeen)
-		if err != nil || t.Before(cutoff) {
+		if err != nil {
+			continue
+		}
+		if t.Before(cutoff) {
 			delete(registry.devices, id)
 			count += 1
 		}
@@ -929,6 +949,12 @@ func rotateIfNeeded(path string) {
 	}
 	ts := time.Now().UTC().Format("20060102-150405")
 	_ = os.Rename(path, path+"."+ts)
+}
+
+func randToken() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func getHostname() string {

@@ -40,7 +40,7 @@ POST `/tasks/report`
 ## Renew lease (agent)
 POST `/tasks/renew`
 ```
-{"id": "task-1", "claimed_by": "agent-local"}
+{"id": "task-1", "claimed_by": "agent-local", "claim_token": "token-from-claim"}
 ```
 
 ## Auth
