@@ -500,11 +500,20 @@ func (q *CoinQueueSQLite) dispatch(job *CoinJob, coin CoinIntegration, cfg Confi
 		}
 		return nil
 	case JobSubmit:
-		bid, _ := job.Payload["bounty_id"].(string)
-		agent, _ := job.Payload["agent"].(string)
-		stake, _ := job.Payload["stake"].(string)
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		agent, err := getStringPayload(job.Payload, "agent")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		stake, err := getStringPayload(job.Payload, "stake")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
 		opStart := time.Now()
-		_, err := coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
+		_, err = coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
 		if perfMetrics != nil {
 			perfMetrics.Observe("coin_http_submit_solution", time.Since(opStart), slowJobThreshold)
 		}
@@ -514,8 +523,15 @@ func (q *CoinQueueSQLite) dispatch(job *CoinJob, coin CoinIntegration, cfg Confi
 		updateCoinStatus(job.TaskID, "submitted", "", bid)
 		return nil
 	case JobSettle:
-		bid, _ := job.Payload["bounty_id"].(string)
-		evidence := BuildEvidence(job.Payload)
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		success, err := getBoolPayload(job.Payload, "success")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		evidence := map[string]any{"ci_passed": success}
 		opStart := time.Now()
 		res, err := coin.client.Verify(ctx, bid, evidence)
 		if perfMetrics != nil {

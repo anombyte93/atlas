@@ -54,6 +54,22 @@ func getStringPayload(payload map[string]any, key string) (string, error) {
 	return strVal, nil
 }
 
+// getBoolPayload extracts a bool value from a job payload with validation.
+func getBoolPayload(payload map[string]any, key string) (bool, error) {
+	if payload == nil {
+		return false, fmt.Errorf("payload is nil; missing %q", key)
+	}
+	val, ok := payload[key]
+	if !ok {
+		return false, fmt.Errorf("payload missing key %q", key)
+	}
+	boolVal, ok := val.(bool)
+	if !ok {
+		return false, fmt.Errorf("payload key %q must be a bool", key)
+	}
+	return boolVal, nil
+}
+
 func NewCoinQueue(logPath string) *CoinQueue {
 	q := &CoinQueue{
 		jobs:   map[string]*CoinJob{},
@@ -238,11 +254,20 @@ func (q *CoinQueue) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) err
 		}
 		return nil
 	case JobSubmit:
-		bid, _ := job.Payload["bounty_id"].(string)
-		agent, _ := job.Payload["agent"].(string)
-		stake, _ := job.Payload["stake"].(string)
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		agent, err := getStringPayload(job.Payload, "agent")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		stake, err := getStringPayload(job.Payload, "stake")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
 		opStart := time.Now()
-		_, err := coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
+		_, err = coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
 		if perfMetrics != nil {
 			perfMetrics.Observe("coin_http_submit_solution", time.Since(opStart), slowJobThreshold)
 		}
@@ -252,8 +277,14 @@ func (q *CoinQueue) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) err
 		updateCoinStatus(job.TaskID, "submitted", "", bid)
 		return nil
 	case JobSettle:
-		bid, _ := job.Payload["bounty_id"].(string)
-		success, _ := job.Payload["success"].(bool)
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		success, err := getBoolPayload(job.Payload, "success")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
 		evidence := map[string]any{"ci_passed": success}
 		opStart := time.Now()
 		res, err := coin.client.Verify(ctx, bid, evidence)
