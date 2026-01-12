@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import * as path from "path";
 import { IEvent, IEventBus } from "./types";
+import { Mutex } from "./Mutex";
 
 export interface StoredEvent {
   id: string;
@@ -21,6 +22,8 @@ export interface EventStoreOptions {
  */
 export class EventStore {
   private events: StoredEvent[] = [];
+  // Mutex to serialize append operations and avoid race conditions on the event log file
+  private readonly appendMutex = new Mutex();
   private readonly options: EventStoreOptions;
 
   constructor(options: EventStoreOptions) {
@@ -29,25 +32,29 @@ export class EventStore {
 
   /**
    * Append a new event to the store and persist to disk.
+   * Uses mutex to serialize concurrent append calls.
    */
   async append(event: IEvent, causationId?: string): Promise<string> {
-    const storedEvent: StoredEvent = {
-      id: crypto.randomUUID(),
-      type: event.type,
-      timestamp: event.timestamp.getTime(),
-      data: event.data,
-      causationId,
-    };
+    // Wrap entire operation in mutex lock to prevent race conditions
+    return this.appendMutex.runExclusive(async () => {
+      const storedEvent: StoredEvent = {
+        id: crypto.randomUUID(),
+        type: event.type,
+        timestamp: event.timestamp.getTime(),
+        data: event.data,
+        causationId,
+      };
 
-    this.events.push(storedEvent);
-    await this.persist(storedEvent);
+      this.events.push(storedEvent);
+      await this.persist(storedEvent);
 
-    // Emit to event bus if provided
-    if (this.options.eventBus) {
-      await this.options.eventBus.publish(event);
-    }
+      // Emit to event bus if provided
+      if (this.options.eventBus) {
+        await this.options.eventBus.publish(event);
+      }
 
-    return storedEvent.id;
+      return storedEvent.id;
+    });
   }
 
   /**
@@ -107,6 +114,7 @@ export class EventStore {
 
   /**
    * Load existing events from disk on startup.
+   * Parses each line individually to handle corrupt data gracefully.
    */
   async load(): Promise<void> {
     const filepath = this.getEventLogPath();
@@ -115,9 +123,18 @@ export class EventStore {
       const content = await fs.readFile(filepath, "utf-8");
       const lines = content.trim().split("\n");
 
-      this.events = lines
-        .filter((line) => line.length > 0)
-        .map((line) => JSON.parse(line) as StoredEvent);
+      this.events = [];
+      lines.forEach((line, index) => {
+        if (!line.length) return;
+        try {
+          const parsed = JSON.parse(line) as StoredEvent;
+          this.events.push(parsed);
+        } catch (error) {
+          console.warn(
+            `Skipping corrupt event log line ${index + 1}: ${String(error)}`
+          );
+        }
+      });
     } catch (error) {
       // File doesn't exist yet - start fresh
       this.events = [];
