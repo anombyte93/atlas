@@ -2,7 +2,12 @@ module atlas-control-plane
 
 go 1.21
 
-require modernc.org/sqlite v1.29.2
+require (
+	modernc.org/sqlite v1.29.2
+	go.opentelemetry.io/otel v1.24.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.24.0
+	go.opentelemetry.io/otel/sdk/trace v1.24.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

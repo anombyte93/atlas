@@ -148,7 +148,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
-		bodyBytes, _ := io.ReadAll(resp.Body)
+		_, _ = io.ReadAll(resp.Body) // Read body to avoid connection leak
 		return fmt.Errorf("atlas-coin %s %s failed: %s", method, path, resp.Status)
 	}
 	if out == nil {

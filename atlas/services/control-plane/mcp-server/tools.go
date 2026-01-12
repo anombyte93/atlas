@@ -14,11 +14,11 @@ func (s *MCPServer) ListTools() (map[string]interface{}, error) {
 				InputSchema: map[string]interface{}{
 					"type": "object",
 					"properties": map[string]interface{}{
-						"type": map[string]string{
+						"type": map[string]interface{}{
 							"type": "string",
-							"enum": "shell,script",
+							"enum": []string{"shell", "script"},
 						},
-						"command": map[string]string{
+						"command": map[string]interface{}{
 							"type":        "string",
 							"description": "Command to execute",
 						},
