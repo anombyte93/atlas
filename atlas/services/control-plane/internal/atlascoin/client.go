@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -41,12 +42,21 @@ type Challenge struct {
 	Success  bool   `json:"successful,omitempty"`
 }
 
+const defaultRequestTimeout = 10 * time.Second
+
 // New creates a client with a 5s timeout HTTP client.
 func New(baseURL, auth string) *Client {
 	return &Client{
 		baseURL: baseURL,
-		http:    &http.Client{Timeout: 5 * time.Second},
-		auth:    auth,
+		http: &http.Client{
+			Timeout: defaultRequestTimeout + (2 * time.Second), // allow for connect + TLS
+			Transport: &http.Transport{
+				MaxIdleConns:        50,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     60 * time.Second,
+			},
+		},
+		auth: auth,
 	}
 }
 
@@ -110,6 +120,12 @@ func (c *Client) Settle(ctx context.Context, bountyID string) (*Bounty, error) {
 
 // do issues an HTTP request and decodes JSON into out when provided.
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) error {
+	if _, ok := ctx.Deadline(); !ok {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, defaultRequestTimeout)
+		defer cancel()
+	}
+
 	var buf bytes.Buffer
 	if body != nil {
 		if err := json.NewEncoder(&buf).Encode(body); err != nil {
@@ -132,6 +148,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 300 {
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("atlas-coin %s %s failed: %s", method, path, resp.Status)
 	}
 	if out == nil {

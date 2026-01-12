@@ -6,17 +6,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
 )
 
+const (
+	slowDBThreshold    = 200 * time.Millisecond
+	slowJobThreshold   = 3 * time.Second
+	coinRequestTimeout = 10 * time.Second
+)
+
 // CoinQueueSQLite manages coin jobs with durable SQLite persistence
 type CoinQueueSQLite struct {
-	mu   sync.Mutex
-	db   *sql.DB
-	log  string // Legacy JSON path for migration
+	mu  sync.Mutex
+	db  *sql.DB
+	log string // Legacy JSON path for migration
 }
 
 // NewCoinQueueSQLite creates a new SQLite-backed coin queue
@@ -25,6 +32,11 @@ func NewCoinQueueSQLite(dbPath, legacyPath string) (*CoinQueueSQLite, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open coin queue db: %w", err)
 	}
+	// Enable modest pooling for concurrent access with WAL.
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetConnMaxLifetime(15 * time.Minute)
 
 	// Enable WAL for concurrent access
 	if _, err := db.Exec("PRAGMA journal_mode=WAL;"); err != nil {
@@ -93,6 +105,7 @@ func (q *CoinQueueSQLite) migrateFromJSON() error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	toInsert := make([]*CoinJob, 0, len(entries))
 	for _, j := range entries {
 		// Check if already migrated
 		var exists bool
@@ -104,8 +117,12 @@ func (q *CoinQueueSQLite) migrateFromJSON() error {
 			return err
 		}
 
-		// Insert legacy job
-		if err := q.insertJob(j); err != nil {
+		prepareJobDefaults(j)
+		toInsert = append(toInsert, j)
+	}
+
+	if len(toInsert) > 0 {
+		if err := q.insertJobsBatch(toInsert); err != nil {
 			return err
 		}
 	}
@@ -113,8 +130,69 @@ func (q *CoinQueueSQLite) migrateFromJSON() error {
 	return nil
 }
 
+// prepareJobDefaults ensures required fields are set before insertion.
+func prepareJobDefaults(j *CoinJob) {
+	if j.RequestID == "" {
+		j.RequestID = j.ID
+	}
+	if j.MaxAttempt == 0 {
+		j.MaxAttempt = 5 // Default max attempts
+	}
+	if j.CreatedAt.IsZero() {
+		j.CreatedAt = time.Now().UTC()
+	}
+}
+
+// insertJobsBatch inserts multiple jobs in a single transaction.
+func (q *CoinQueueSQLite) insertJobsBatch(jobs []*CoinJob) error {
+	start := time.Now()
+	tx, err := q.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.Prepare(`
+		INSERT INTO coin_jobs (id, task_id, kind, payload, attempts, max_attempt, status, last_error, next_run, created_at, request_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET
+			status=excluded.status,
+			attempts=excluded.attempts,
+			last_error=excluded.last_error,
+			next_run=excluded.next_run
+	`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer stmt.Close()
+
+	for _, j := range jobs {
+		payload, _ := json.Marshal(j.Payload)
+		var nextRunPtr *string
+		if !j.NextRun.IsZero() {
+			s := j.NextRun.UTC().Format(time.RFC3339)
+			nextRunPtr = &s
+		}
+		if _, err := stmt.Exec(
+			j.ID, j.TaskID, string(j.Kind), string(payload), j.Attempts, j.MaxAttempt,
+			j.Status, j.LastError, nextRunPtr, j.CreatedAt.UTC().Format(time.RFC3339), j.RequestID,
+		); err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	if perfMetrics != nil {
+		perfMetrics.Observe("coin_queue_batch_insert", time.Since(start), slowDBThreshold)
+	}
+	return nil
+}
+
 // insertJob inserts a job into the database
 func (q *CoinQueueSQLite) insertJob(j *CoinJob) error {
+	start := time.Now()
 	payload, _ := json.Marshal(j.Payload)
 	var nextRunPtr *string
 	if !j.NextRun.IsZero() {
@@ -134,26 +212,38 @@ func (q *CoinQueueSQLite) insertJob(j *CoinJob) error {
 		j.ID, j.TaskID, string(j.Kind), string(payload), j.Attempts, j.MaxAttempt,
 		j.Status, j.LastError, nextRunPtr, j.CreatedAt.UTC().Format(time.RFC3339), j.RequestID,
 	)
+	if perfMetrics != nil {
+		perfMetrics.Observe("coin_queue_single_insert", time.Since(start), slowDBThreshold)
+	}
 	return err
 }
 
 // Enqueue adds a job to the queue
 func (q *CoinQueueSQLite) Enqueue(job *CoinJob) {
+	q.EnqueueBatch([]*CoinJob{job})
+}
+
+// EnqueueBatch adds multiple jobs in one transaction for throughput.
+func (q *CoinQueueSQLite) EnqueueBatch(jobs []*CoinJob) {
+	if len(jobs) == 0 {
+		return
+	}
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	if job.RequestID == "" {
-		job.RequestID = job.ID
-	}
-	if job.MaxAttempt == 0 {
-		job.MaxAttempt = 5 // Default max attempts
-	}
-	if job.CreatedAt.IsZero() {
-		job.CreatedAt = time.Now().UTC()
+	for _, job := range jobs {
+		prepareJobDefaults(job)
 	}
 
-	if err := q.insertJob(job); err != nil {
-		fmt.Printf("coin queue enqueue error: %v\n", err)
+	if len(jobs) == 1 {
+		if err := q.insertJob(jobs[0]); err != nil {
+			fmt.Printf("coin queue enqueue error: %v\n", err)
+		}
+		return
+	}
+
+	if err := q.insertJobsBatch(jobs); err != nil {
+		fmt.Printf("coin queue enqueue batch error: %v\n", err)
 	}
 }
 
@@ -171,6 +261,7 @@ func (q *CoinQueueSQLite) Due(now time.Time) []*CoinJob {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
+	start := time.Now()
 	rows, err := q.db.Query(`
 		SELECT id, task_id, kind, payload, attempts, max_attempt, status, last_error, next_run, created_at, request_id
 		FROM coin_jobs
@@ -193,6 +284,9 @@ func (q *CoinQueueSQLite) Due(now time.Time) []*CoinJob {
 
 	if rows.Err() != nil {
 		return nil
+	}
+	if perfMetrics != nil {
+		perfMetrics.Observe("coin_queue_due_query", time.Since(start), slowDBThreshold)
 	}
 	return jobs
 }
@@ -292,19 +386,58 @@ func (q *CoinQueueSQLite) Close() error {
 
 // WorkerLoop processes due jobs with retry/backoff. It runs forever.
 func (q *CoinQueueSQLite) WorkerLoop(coin CoinIntegration, cfg Config) {
+	workerCount := runtime.NumCPU()
+	if workerCount < 2 {
+		workerCount = 2
+	}
+	if workerCount > 8 {
+		workerCount = 8
+	}
+
+	jobCh := make(chan *CoinJob, workerCount*2)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for job := range jobCh {
+				q.handle(job, coin, cfg)
+			}
+		}()
+	}
+
 	ticker := time.NewTicker(2 * time.Second)
 	for now := range ticker.C {
-		due := q.Due(now)
-		for _, job := range due {
-			q.handle(job, coin, cfg)
+		for _, job := range q.Due(now) {
+			if q.claim(job) {
+				jobCh <- job
+			}
 		}
 	}
 }
 
-func (q *CoinQueueSQLite) handle(job *CoinJob, coin CoinIntegration, cfg Config) {
+// claim marks a job as running so concurrent workers don't double-process it.
+func (q *CoinQueueSQLite) claim(job *CoinJob) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	var status string
+	err := q.db.QueryRow("SELECT status FROM coin_jobs WHERE id = ?", job.ID).Scan(&status)
+	if err != nil {
+		return false
+	}
+	if status == "running" {
+		return false
+	}
 	job.Attempts++
 	job.Status = "running"
-	q.Mark(job)
+	job.LastError = ""
+	job.NextRun = time.Time{}
+	if err := q.insertJob(job); err != nil {
+		fmt.Printf("coin queue claim error: %v\n", err)
+		return false
+	}
+	return true
+}
+
+func (q *CoinQueueSQLite) handle(job *CoinJob, coin CoinIntegration, cfg Config) {
+	start := time.Now()
 
 	err := q.dispatch(job, coin, cfg)
 	if err != nil {
@@ -326,15 +459,39 @@ func (q *CoinQueueSQLite) handle(job *CoinJob, coin CoinIntegration, cfg Config)
 	job.LastError = ""
 	job.NextRun = time.Time{}
 	q.Mark(job)
+
+	if perfMetrics != nil {
+		perfMetrics.Observe("coin_queue_job_runtime", time.Since(start), slowJobThreshold)
+	}
 }
 
 func (q *CoinQueueSQLite) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) error {
+	ctx, cancel := context.WithTimeout(context.Background(), coinRequestTimeout)
+	defer cancel()
+
 	switch job.Kind {
 	case JobPost:
-		tid, _ := job.Payload["task_id"].(string)
-		template, _ := job.Payload["template"].(string)
-		reward, _ := job.Payload["reward"].(string)
-		_, err := coin.client.PostBounty(job.Context(), coin.poster, template, reward)
+		tid, err := getStringPayload(job.Payload, "task_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		poster, err := getStringPayload(job.Payload, "poster")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		template, err := getStringPayload(job.Payload, "template")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		escrowAmount, err := getStringPayload(job.Payload, "escrowAmount")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		opStart := time.Now()
+		_, err = coin.client.PostBounty(ctx, poster, template, escrowAmount)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_post_bounty", time.Since(opStart), slowJobThreshold)
+		}
 		if err != nil {
 			return err
 		}
@@ -343,24 +500,53 @@ func (q *CoinQueueSQLite) dispatch(job *CoinJob, coin CoinIntegration, cfg Confi
 		}
 		return nil
 	case JobSubmit:
-		bid, _ := job.Payload["bounty_id"].(string)
-		agent, _ := job.Payload["agent"].(string)
-		stake, _ := job.Payload["stake"].(string)
-		_, err := coin.client.SubmitSolution(job.Context(), bid, agent, stake, job.Payload)
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		agent, err := getStringPayload(job.Payload, "agent")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		stake, err := getStringPayload(job.Payload, "stake")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		opStart := time.Now()
+		_, err = coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_submit_solution", time.Since(opStart), slowJobThreshold)
+		}
 		if err != nil {
 			return err
 		}
 		updateCoinStatus(job.TaskID, "submitted", "", bid)
 		return nil
 	case JobSettle:
-		bid, _ := job.Payload["bounty_id"].(string)
-		evidence := BuildEvidence(job.Payload)
-		if res, err := coin.client.Verify(job.Context(), bid, evidence); err != nil {
+		bid, err := getStringPayload(job.Payload, "bounty_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		success, err := getBoolPayload(job.Payload, "success")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		evidence := map[string]any{"ci_passed": success}
+		opStart := time.Now()
+		res, err := coin.client.Verify(ctx, bid, evidence)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_verify", time.Since(opStart), slowJobThreshold)
+		}
+		if err != nil {
 			return err
 		} else if res != nil && !res.Passed {
 			return fmt.Errorf("verify failed bounty %s", bid)
 		}
-		_, err := coin.client.Settle(job.Context(), bid)
+		opStart = time.Now()
+		_, err = coin.client.Settle(ctx, bid)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_settle", time.Since(opStart), slowJobThreshold)
+		}
 		if err == nil {
 			updateCoinStatus(job.TaskID, "settled", "", bid)
 		}

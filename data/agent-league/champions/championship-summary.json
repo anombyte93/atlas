@@ -1,0 +1,479 @@
+{
+  "generatedAt": "2026-01-12T08:29:24.740Z",
+  "seasonsRun": 10,
+  "seasonConfig": {
+    "roundsPerSeason": 20,
+    "challengeCount": 10,
+    "eliminationCount": 2,
+    "promotionCount": 3
+  },
+  "seasons": [
+    {
+      "seasonNumber": 1,
+      "participants": 8,
+      "topPerformer": "agent-5",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-5",
+          "rank": 1,
+          "score": 38,
+          "wins": 12,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-2",
+          "rank": 2,
+          "score": 36,
+          "wins": 14,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-3",
+          "rank": 3,
+          "score": 31,
+          "wins": 12,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-4",
+          "rank": 4,
+          "score": 31,
+          "wins": 12,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-6",
+          "rank": 5,
+          "score": 30,
+          "wins": 12,
+          "losses": 7
+        }
+      ]
+    },
+    {
+      "seasonNumber": 2,
+      "participants": 8,
+      "topPerformer": "agent-2",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-2",
+          "rank": 1,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-6",
+          "rank": 2,
+          "score": 38,
+          "wins": 13,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-4",
+          "rank": 3,
+          "score": 34,
+          "wins": 12,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-3",
+          "rank": 4,
+          "score": 28,
+          "wins": 12,
+          "losses": 8
+        },
+        {
+          "agentId": "agent-5",
+          "rank": 5,
+          "score": 28,
+          "wins": 12,
+          "losses": 8
+        }
+      ]
+    },
+    {
+      "seasonNumber": 3,
+      "participants": 8,
+      "topPerformer": "agent-3",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-3",
+          "rank": 1,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-13",
+          "rank": 2,
+          "score": 37,
+          "wins": 14,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-9",
+          "rank": 3,
+          "score": 33,
+          "wins": 13,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-2",
+          "rank": 4,
+          "score": 33,
+          "wins": 12,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-5",
+          "rank": 5,
+          "score": 30,
+          "wins": 11,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "seasonNumber": 4,
+      "participants": 8,
+      "topPerformer": "agent-2",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-2",
+          "rank": 1,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-3",
+          "rank": 2,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-14",
+          "rank": 3,
+          "score": 40,
+          "wins": 14,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-9",
+          "rank": 4,
+          "score": 34,
+          "wins": 13,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-13",
+          "rank": 5,
+          "score": 32,
+          "wins": 13,
+          "losses": 7
+        }
+      ]
+    },
+    {
+      "seasonNumber": 5,
+      "participants": 8,
+      "topPerformer": "agent-5",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-5",
+          "rank": 1,
+          "score": 38,
+          "wins": 13,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-4",
+          "rank": 2,
+          "score": 37,
+          "wins": 13,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-9",
+          "rank": 3,
+          "score": 37,
+          "wins": 13,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-13",
+          "rank": 4,
+          "score": 36,
+          "wins": 14,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-17",
+          "rank": 5,
+          "score": 36,
+          "wins": 14,
+          "losses": 6
+        }
+      ]
+    },
+    {
+      "seasonNumber": 6,
+      "participants": 8,
+      "topPerformer": "agent-3",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-3",
+          "rank": 1,
+          "score": 52,
+          "wins": 18,
+          "losses": 2
+        },
+        {
+          "agentId": "agent-4",
+          "rank": 2,
+          "score": 43,
+          "wins": 14,
+          "losses": 2
+        },
+        {
+          "agentId": "agent-19",
+          "rank": 3,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-9",
+          "rank": 4,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-13",
+          "rank": 5,
+          "score": 35,
+          "wins": 13,
+          "losses": 4
+        }
+      ]
+    },
+    {
+      "seasonNumber": 7,
+      "participants": 8,
+      "topPerformer": "agent-13",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-13",
+          "rank": 1,
+          "score": 52,
+          "wins": 18,
+          "losses": 2
+        },
+        {
+          "agentId": "agent-3",
+          "rank": 2,
+          "score": 52,
+          "wins": 18,
+          "losses": 2
+        },
+        {
+          "agentId": "agent-22",
+          "rank": 3,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-9",
+          "rank": 4,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-15",
+          "rank": 5,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "seasonNumber": 8,
+      "participants": 8,
+      "topPerformer": "agent-9",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-9",
+          "rank": 1,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-15",
+          "rank": 2,
+          "score": 42,
+          "wins": 14,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-23",
+          "rank": 3,
+          "score": 37,
+          "wins": 13,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-22",
+          "rank": 4,
+          "score": 36,
+          "wins": 14,
+          "losses": 6
+        },
+        {
+          "agentId": "agent-20",
+          "rank": 5,
+          "score": 34,
+          "wins": 12,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "seasonNumber": 9,
+      "participants": 8,
+      "topPerformer": "agent-26",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-26",
+          "rank": 1,
+          "score": 48,
+          "wins": 17,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-15",
+          "rank": 2,
+          "score": 42,
+          "wins": 15,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-20",
+          "rank": 3,
+          "score": 42,
+          "wins": 14,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-22",
+          "rank": 4,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        },
+        {
+          "agentId": "agent-25",
+          "rank": 5,
+          "score": 40,
+          "wins": 15,
+          "losses": 5
+        }
+      ]
+    },
+    {
+      "seasonNumber": 10,
+      "participants": 8,
+      "topPerformer": "agent-25",
+      "leaderboardTop5": [
+        {
+          "agentId": "agent-25",
+          "rank": 1,
+          "score": 56,
+          "wins": 19,
+          "losses": 1
+        },
+        {
+          "agentId": "agent-13",
+          "rank": 2,
+          "score": 48,
+          "wins": 17,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-23",
+          "rank": 3,
+          "score": 46,
+          "wins": 16,
+          "losses": 3
+        },
+        {
+          "agentId": "agent-20",
+          "rank": 4,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        },
+        {
+          "agentId": "agent-22",
+          "rank": 5,
+          "score": 44,
+          "wins": 16,
+          "losses": 4
+        }
+      ]
+    }
+  ],
+  "finalTopAgents": [
+    {
+      "rank": 1,
+      "id": "agent-25",
+      "strategy": "aggressive",
+      "stats": {
+        "wins": 19,
+        "losses": 1,
+        "draws": 0,
+        "score": 56,
+        "accuracy": 0.617,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 305,
+        "lastActiveAt": "2026-01-12T08:29:24.739Z"
+      }
+    },
+    {
+      "rank": 2,
+      "id": "agent-13",
+      "strategy": "aggressive",
+      "stats": {
+        "wins": 17,
+        "losses": 3,
+        "draws": 0,
+        "score": 48,
+        "accuracy": 0.691,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 1149,
+        "lastActiveAt": "2026-01-12T08:29:24.739Z"
+      }
+    },
+    {
+      "rank": 3,
+      "id": "agent-23",
+      "strategy": "conservative",
+      "stats": {
+        "wins": 16,
+        "losses": 3,
+        "draws": 1,
+        "score": 46,
+        "accuracy": 0.799,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 890,
+        "lastActiveAt": "2026-01-12T08:29:24.739Z"
+      }
+    }
+  ]
+}

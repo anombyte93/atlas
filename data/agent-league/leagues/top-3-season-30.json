@@ -1,0 +1,44 @@
+[
+  {
+    "id": "agent-24",
+    "strategy": "aggressive",
+    "stats": {
+      "wins": 17,
+      "losses": 3,
+      "draws": 0,
+      "score": 48,
+      "accuracy": 0.597,
+      "totalChallenges": 20,
+      "averageResponseTimeMs": 902,
+      "lastActiveAt": "2026-01-12T09:50:45.676Z"
+    }
+  },
+  {
+    "id": "agent-25",
+    "strategy": "balanced",
+    "stats": {
+      "wins": 17,
+      "losses": 3,
+      "draws": 0,
+      "score": 48,
+      "accuracy": 0.865,
+      "totalChallenges": 20,
+      "averageResponseTimeMs": 1071,
+      "lastActiveAt": "2026-01-12T09:50:45.676Z"
+    }
+  },
+  {
+    "id": "agent-20",
+    "strategy": "balanced",
+    "stats": {
+      "wins": 16,
+      "losses": 4,
+      "draws": 0,
+      "score": 44,
+      "accuracy": 0.675,
+      "totalChallenges": 20,
+      "averageResponseTimeMs": 334,
+      "lastActiveAt": "2026-01-12T09:50:45.676Z"
+    }
+  }
+]

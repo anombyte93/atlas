@@ -1,0 +1,14 @@
+{
+  "listen_addr": "{{ .atlas_listen_addr | default \":8080\" }}",
+  "data_dir": "{{ .atlas_data_dir | default (joinPath (env \"HOME\") \".local/share/atlas\") }}",
+  "config_path": "{{ .atlas_config_path | default (joinPath (env \"HOME\") \".config/atlas/control-plane.json\") }}",
+  "world_repo_path": "{{ .atlas_world_repo | default (joinPath .chezmoi.sourceDir \"..\") }}",
+  "allowed_roles": ["server"],
+  "api_token": "{{ .atlas_api_token | default \"change-me\" }}",
+  "device_ttl_hours": {{ .atlas_device_ttl | default 24 }},
+  "device_prune_interval_minutes": {{ .atlas_device_prune_interval | default 30 }},
+  "leader_lease_enabled": {{ .atlas_leader_enabled | default true }},
+  "leader_id": "{{ .atlas_leader_id | default .hostname }}",
+  "leader_lease_seconds": {{ .atlas_leader_lease_seconds | default 30 }},
+  "leader_renew_seconds": {{ .atlas_leader_renew_seconds | default 10 }}
+}

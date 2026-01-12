@@ -195,6 +195,9 @@ func main() {
 	if env := os.Getenv("ATLAS_COIN_URL"); env != "" {
 		cfg.CoinURL = env
 	}
+	if env := os.Getenv("ATLAS_COIN_AUTH_TOKEN"); env != "" {
+		cfg.CoinAuthToken = env
+	}
 	if env := os.Getenv("ATLAS_COIN_ENABLED"); env == "1" || strings.ToLower(env) == "true" {
 		cfg.CoinEnabled = true
 	}
@@ -553,7 +556,6 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 		return
 	}
 	store.mu.Lock()
-	defer store.mu.Unlock()
 	for id := range store.queued {
 		t := store.tasks[id]
 		if t == nil {
@@ -595,6 +597,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			if next, ok := transition(StateQueued, EventClaim); ok {
 				t.Status = string(next)
 			} else {
+				store.mu.Unlock()
 				writeError(w, http.StatusConflict, "state_conflict", "cannot claim from current state")
 				return
 			}
@@ -643,6 +646,7 @@ func handleClaimTask(w http.ResponseWriter, r *http.Request, store *TaskStore, c
 			return
 		}
 	}
+	store.mu.Unlock()
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -1,25 +1,32 @@
-# Atlas - Your AI Home
+# Atlas - Your AI Platform
 
 ## What is Atlas?
 
-Atlas is your **Personal AI Platform** - the place where your AI systems live. Think of it as mission control for all your AI projects.
+**Atlas** is code for your Personal AI Platform - a centralized system for managing AI agents, services, and workflows.
 
-## Quick Start (The Basics)
+**IMPORTANT**: Atlas is currently code, not a running service. You need to deploy it first (see Setup below).
 
-### Go to Atlas
-Open your terminal and type:
+## Quick Start
+
+### Install the Atlas CLI
 ```bash
-.
+# The atlas command is already installed at ~/bin/atlas
+# Verify it works:
+atlas status
 ```
-(The dot is your shortcut to go home to Atlas)
 
-### See Your AI Sessions
+### Common Commands
 ```bash
-ai ts
+atlas status    # Show Atlas status and AI sessions
+atlas sessions  # Show all AI sessions
+atlas cd        # Go to Atlas directory (opens shell)
 ```
-Then press a number 1-6 to jump to that session.
 
-Press `q` to quit without switching.
+### AI Session Management
+```bash
+ai ts          # Quick select from top 6 sessions
+ai tmux        # Show all sessions
+```
 
 ---
 
