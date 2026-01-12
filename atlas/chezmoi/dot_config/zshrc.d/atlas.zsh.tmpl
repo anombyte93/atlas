@@ -1,0 +1,6 @@
+atlas-dev() {
+  local world_repo="{{ .atlas_world_repo | default (joinPath .chezmoi.sourceDir \"..\") }}"
+  local api_token="{{ .atlas_api_token | default \"change-me\" }}"
+  atlas/scripts/bootstrap_chezmoi.sh -D atlas_api_token="${api_token}" -D atlas_world_repo="${world_repo}"
+  atlas/scripts/dev_up.sh
+}

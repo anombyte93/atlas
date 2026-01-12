@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Atlas Visibility Tracking v2 - Consolidated Production Implementation
+# Base: Sprint-b version (212 lines) with architect's schema + retry logic
+# Fixes: All 21 bugs from doubt agent + senior dev review
+
+DB_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/atlas"
+DB_PATH="$DB_DIR/visibility.db"
+PRAGMAS="PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;"
+
+usage() {
+  echo "Usage: $(basename "$0") \"description\" [-- command [args...]]" >&2
+  exit 1
+}
+
+sqlite_run() {
+  local sql="$1"
+  sqlite3 -batch "$DB_PATH" "$PRAGMAS $sql"
+}
+
+sqlite_quote() {
+  local value="$1"
+  local escaped=${value//\'/''}
+  sqlite3 -batch "$DB_PATH" "SELECT quote('$escaped');"
+}
+
+validate_uuid() {
+  [[ "$1" =~ ^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$ ]]
+}
+
+gen_uuid() {
+  if command -v uuidgen >/dev/null 2>&1; then
+    tr 'A-Z' 'a-z' <<<"$(uuidgen)"
+  else
+    python3 - <<'PY'
+import uuid
+print(uuid.uuid4())
+PY
+  fi
+}
+
+task_id_exists() {
+  local candidate="$1"
+  local candidate_q
+  candidate_q=$(sqlite_quote "$candidate")
+  sqlite_run "SELECT 1 FROM entries WHERE task_id = ${candidate_q} LIMIT 1;" | grep -q 1
+}
+
+generate_task_id() {
+  local candidate
+  local max_attempts=100
+  local attempt=0
+
+  while [ $attempt -lt $max_attempts ]; do
+    candidate=$(gen_uuid)
+    if validate_uuid "$candidate" && ! task_id_exists "$candidate"; then
+      echo "$candidate"
+      return 0
+    fi
+    ((attempt++))
+  done
+
+  echo "ERROR: Failed to generate unique task ID after $max_attempts attempts" >&2
+  return 1
+}
+
+begin_transaction() {
+  sqlite_run "BEGIN IMMEDIATE;"
+  trap 'sqlite_run "ROLLBACK;"' ERR
+}
+
+commit_transaction() {
+  trap - ERR
+  sqlite_run "COMMIT;"
+}
+
+run_txn_with_retry() {
+  local sql="$1"
+  local max_attempts=3
+  local attempt=1
+  local delay=1
+
+  while [ $attempt -le $max_attempts ]; do
+    if sqlite_run "$sql"; then
+      return 0
+    fi
+
+    if [ $attempt -lt $max_attempts ]; then
+      echo "[WARNING] Database locked, retry ${attempt}/${max_attempts} in ${delay}s..." >&2
+      sleep $delay
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
+}
+
+ensure_db() {
+  mkdir -p "$DB_DIR"
+
+  # Check if schema exists
+  if ! sqlite_run "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='entries';" | grep -q 1; then
+    # Initialize schema from src/schema.sql
+    if [ -f "src/schema.sql" ]; then
+      sqlite3 -batch "$DB_PATH" < src/schema.sql
+    else
+      # Fallback inline schema
+      sqlite_run "
+        CREATE TABLE IF NOT EXISTS entries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id TEXT UNIQUE NOT NULL,
+          description TEXT NOT NULL,
+          command TEXT,
+          exit_code INTEGER,
+          duration_seconds INTEGER,
+          status TEXT CHECK(status IN ('logged','running','completed','failed')),
+          stdout TEXT,
+          stderr TEXT,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_entries_status ON entries(status);
+        CREATE INDEX IF NOT EXISTS idx_entries_task_id ON entries(task_id);
+
+        CREATE TRIGGER IF NOT EXISTS entries_updated_at_tr
+        AFTER UPDATE ON entries
+        BEGIN
+          UPDATE entries SET updated_at = datetime('now') WHERE id = NEW.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS cleanup_old_entries
+        AFTER INSERT ON entries
+        BEGIN
+          DELETE FROM entries WHERE created_at < datetime('now', '-90 days');
+        END;
+      "
+    fi
+  fi
+}
+
+log_initial() {
+  local task_id="$1"
+  local description="$2"
+  local command="$3"
+  local desc_q cmd_q
+  desc_q=$(sqlite_quote "$description")
+  if [[ -n "$command" ]]; then
+    cmd_q=$(sqlite_quote "$command")
+  else
+    cmd_q="NULL"
+  fi
+
+  local sql="INSERT INTO entries(task_id, description, command, status) VALUES ($task_id, $desc_q, $cmd_q, 'logged');"
+  run_txn_with_retry "$sql"
+}
+
+mark_running() {
+  local task_id_q="$1"
+  run_txn_with_retry "UPDATE entries SET status='running', updated_at=datetime('now') WHERE task_id = $task_id_q;"
+}
+
+finalize_task() {
+  local task_id_q="$1"
+  local exit_code="$2"
+  local duration="$3"
+  local stdout_content="$4"
+  local stderr_content="$5"
+  local status="completed"
+  [[ "$exit_code" -ne 0 ]] && status="failed"
+
+  local stdout_q stderr_q
+  stdout_q=$(sqlite_quote "$stdout_content")
+  stderr_q=$(sqlite_quote "$stderr_content")
+
+  local sql="
+    UPDATE entries
+      SET status='$status',
+          exit_code=$exit_code,
+          duration_seconds=$duration,
+          stdout=$stdout_q,
+          stderr=$stderr_q,
+          updated_at=datetime('now')
+      WHERE task_id = $task_id_q;
+  "
+  run_txn_with_retry "$sql"
+}
+
+main() {
+  if [[ $# -lt 1 ]]; then
+    usage
+  fi
+
+  local description="$1"
+  shift || true
+
+  local cmd=()
+  if [[ $# -gt 0 ]]; then
+    if [[ "$1" != "--" ]]; then
+      echo "If providing a command, place it after --" >&2
+      exit 1
+    fi
+    shift
+    cmd=("$@")
+  fi
+
+  ensure_db
+
+  local task_id
+  task_id=$(generate_task_id)
+  local task_id_q
+  task_id_q=$(sqlite_quote "$task_id")
+
+  local command_str=""
+  if [[ ${#cmd[@]} -gt 0 ]]; then
+    printf -v command_str '%q ' "${cmd[@]}"
+    command_str=${command_str%% }
+  fi
+
+  log_initial "$task_id_q" "$description" "$command_str"
+  echo "✓ Logged task $task_id: $description"
+
+  if [[ ${#cmd[@]} -eq 0 ]]; then
+    exit 0
+  fi
+
+  mark_running "$task_id_q"
+
+  local stdout_file stderr_file
+  stdout_file=$(mktemp)
+  stderr_file=$(mktemp)
+  trap 'rm -f "$stdout_file" "$stderr_file"' EXIT
+
+  local start_ts
+  start_ts=$(date +%s)
+  local exit_code
+  set +e
+  "${cmd[@]}" >"$stdout_file" 2>"$stderr_file"
+  exit_code=$?
+  set -e
+  local end_ts
+  end_ts=$(date +%s)
+  local duration=$(( end_ts - start_ts ))
+
+  local stdout_content stderr_content
+  stdout_content=$(cat "$stdout_file")
+  stderr_content=$(cat "$stderr_file")
+
+  finalize_task "$task_id_q" "$exit_code" "$duration" "$stdout_content" "$stderr_content"
+
+  rm -f "$stdout_file" "$stderr_file"
+  trap - EXIT
+
+  if [[ "$exit_code" -eq 0 ]]; then
+    echo "✓ Task $task_id completed in ${duration}s"
+  else
+    echo "✗ Task $task_id failed with exit code $exit_code after ${duration}s" >&2
+    exit "$exit_code"
+  fi
+}
+
+main "$@"

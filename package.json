@@ -1,0 +1,29 @@
+{
+  "name": "atlas",
+  "version": "1.0.0",
+  "description": "**Atlas** is code for your Personal AI Platform - a centralized system for managing AI agents, services, and workflows.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anombyte93/atlas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/anombyte93/atlas/issues"
+  },
+  "homepage": "https://github.com/anombyte93/atlas#readme",
+  "dependencies": {
+    "@types/opossum": "^8.1.9",
+    "opossum": "^9.0.0"
+  }
+}
