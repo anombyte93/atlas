@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "id": "archie-agent",
+  "device_id": "archie",
+  "version": "0.1.0",
+  "control_plane_url": "http://localhost:8080",
+  "api_token": "dev-token-archie",
+  "heartbeat_interval_sec": 15,
+  "permissions": {
+    "read_only": false,
+    "allowed_paths": ["/home/anombyte/Atlas", "/home/anombyte/.claude", "/tmp"]
+  },
+  "resources": {
+    "cpu_limit": 8,
+    "memory_limit_mb": 4096
+  },
+  "tags": ["role:workstation", "os:linux", "ai", "codex"]
+}

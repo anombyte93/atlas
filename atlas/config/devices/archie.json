@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "id": "archie",
+  "hostname": "Archie",
+  "roles": ["workstation"],
+  "capabilities": {
+    "os": "linux",
+    "arch": "amd64",
+    "cpu_cores": 32,
+    "memory_mb": 131072,
+    "tags": ["gpu:none", "region:local", "ai", "dev", "codex"]
+  },
+  "labels": {
+    "owner": "anombyte",
+    "env": "dev"
+  },
+  "created_at": "2026-01-12T12:00:00Z"
+}

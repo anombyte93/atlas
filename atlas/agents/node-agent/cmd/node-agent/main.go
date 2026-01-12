@@ -4,16 +4,21 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -54,9 +59,15 @@ type RegisterPayload struct {
 }
 
 type HeartbeatPayload struct {
-	DeviceID     string     `json:"device_id"`
-	Timestamp    string     `json:"timestamp"`
-	Capabilities Capability `json:"capabilities"`
+	DeviceID     string       `json:"device_id"`
+	Timestamp    string       `json:"timestamp"`
+	Capabilities Capability   `json:"capabilities"`
+	Metrics      AgentMetrics `json:"metrics,omitempty"`
+}
+
+type AgentMetrics struct {
+	HashMismatches    uint64 `json:"hash_mismatches,omitempty"`
+	HashBackfillSkips uint64 `json:"hash_backfill_skips,omitempty"`
 }
 
 func main() {
@@ -190,6 +201,10 @@ func sendHeartbeat(cfg AgentConfig, cap Capability) {
 		DeviceID:     cfg.DeviceID,
 		Timestamp:    time.Now().UTC().Format(time.RFC3339),
 		Capabilities: cap,
+		Metrics: AgentMetrics{
+			HashMismatches:    atomic.LoadUint64(&hashMismatchCount),
+			HashBackfillSkips: atomic.LoadUint64(&hashBackfillSkip),
+		},
 	}
 	_ = postJSON(cfg.ControlPlaneURL+"/heartbeat", payload)
 }
@@ -202,9 +217,12 @@ type Task struct {
 	Command       string      `json:"command,omitempty"`
 	ScriptPath    string      `json:"script_path,omitempty"`
 	TimeoutSec    int         `json:"timeout_sec"`
+	MaxAttempts   int         `json:"max_attempts,omitempty"`
 	RequiredTags  []string    `json:"required_tags,omitempty"`
 	ClaimedBy     string      `json:"claimed_by,omitempty"`
 	ClaimToken    string      `json:"claim_token,omitempty"`
+	ContentHash   string      `json:"content_hash,omitempty"`
+	LeaderToken   int64       `json:"leader_token,omitempty"`
 	Result        *TaskResult `json:"result,omitempty"`
 }
 
@@ -230,12 +248,39 @@ func pollAndExecute(cfg AgentConfig) {
 	if task.ClaimToken == "" {
 		return
 	}
+	// backfill content hash for legacy tasks so they still run post-upgrade
+	if task.ContentHash == "" {
+		task.ContentHash = taskContentHash(task, cfg.WorldRepoPath)
+	}
+	if task.ContentHash == "" {
+		atomic.AddUint64(&hashBackfillSkip, 1)
+		log.Printf("[agent] missing content hash for task %s; skipping (skips=%d)", task.ID, atomic.LoadUint64(&hashBackfillSkip))
+		return
+	}
+	if task.ContentHash != "" && cfg.WorldRepoPath != "" && task.Type == "script" {
+		// recompute to ensure local view matches control-plane hash; warn on mismatch
+		if local := taskContentHash(task, cfg.WorldRepoPath); local != "" && local != task.ContentHash {
+			atomic.AddUint64(&hashMismatchCount, 1)
+			log.Printf("[agent] content hash mismatch for task %s; control-plane=%s local=%s mismatches=%d", task.ID, task.ContentHash, local, atomic.LoadUint64(&hashMismatchCount))
+			task.Status = "failed"
+			task.Result = &TaskResult{ExitCode: 1, Stderr: "content hash mismatch; refusing to run script"}
+			task.ClaimedBy = cfg.ID
+			_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
+			return
+		}
+	}
 	result, status := executeTask(cfg, task)
 	task.Status = status
 	task.Result = result
 	task.ClaimedBy = cfg.ID
 	// preserve claim token returned by control plane
-	_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
+	respBody, errReport := postJSONGet(cfg.ControlPlaneURL+"/tasks/report", task, cfg.APIToken)
+	if errReport != nil {
+		log.Printf("[agent] task report POST failed task=%s err=%v", task.ID, errReport)
+	}
+	if len(respBody) > 0 {
+		log.Printf("[agent] task report response task=%s body=%s", task.ID, strings.TrimSpace(string(respBody)))
+	}
 }
 
 func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
@@ -265,6 +310,7 @@ func executeTask(cfg AgentConfig, task Task) (*TaskResult, string) {
 	if cmdStr == "" {
 		return &TaskResult{ExitCode: 1, Stderr: "empty command"}, "failed"
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	var cmd *exec.Cmd
@@ -303,7 +349,12 @@ func renewLeaseLoop(cfg AgentConfig, task Task, stop <-chan struct{}) {
 		case <-stop:
 			return
 		case <-ticker.C:
-			payload := map[string]string{"id": task.ID, "claimed_by": cfg.ID, "claim_token": task.ClaimToken}
+			payload := map[string]any{
+				"id":           task.ID,
+				"claimed_by":   cfg.ID,
+				"claim_token":  task.ClaimToken,
+				"leader_token": task.LeaderToken,
+			}
 			_, _ = postJSONGet(cfg.ControlPlaneURL+"/tasks/renew", payload, cfg.APIToken)
 		}
 	}
@@ -331,6 +382,8 @@ func postJSON(url string, payload any) error {
 }
 
 var currentToken string
+var hashMismatchCount uint64
+var hashBackfillSkip uint64
 
 func postJSONGet(url string, payload any, token string) ([]byte, error) {
 	b, _ := json.Marshal(payload)
@@ -356,6 +409,42 @@ func hostname() string {
 		return "unknown"
 	}
 	return h
+}
+
+func taskContentHash(t Task, worldRepo string) string {
+	h := sha256.New()
+	write := func(s string) {
+		h.Write([]byte(s))
+		h.Write([]byte{0})
+	}
+	write(t.Type)
+	write(t.Command)
+	write(t.ScriptPath)
+	write(strconv.Itoa(t.TimeoutSec))
+	write(strconv.Itoa(t.MaxAttempts))
+	if len(t.RequiredTags) > 0 {
+		sorted := append([]string{}, t.RequiredTags...)
+		sort.Strings(sorted)
+		for _, tag := range sorted {
+			write(tag)
+		}
+	}
+	if t.Type == "script" {
+		if worldRepo == "" || filepath.IsAbs(t.ScriptPath) || strings.Contains(t.ScriptPath, "..") || t.ScriptPath == "" {
+			return ""
+		}
+		full := filepath.Join(worldRepo, t.ScriptPath)
+		b, err := os.ReadFile(full)
+		if err != nil {
+			return ""
+		}
+		h.Write([]byte(strconv.Itoa(len(b))))
+		if len(b) > 1024*1024 {
+			b = b[:1024*1024]
+		}
+		h.Write(b)
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func fatal(msg string, err error) {
