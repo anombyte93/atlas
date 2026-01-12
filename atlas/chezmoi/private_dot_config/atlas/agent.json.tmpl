@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "id": "{{ .atlas_agent_id | default \"agent-\" | printf \"%s%s\" .hostname }}",
+  "device_id": "",
+  "version": "0.1.0",
+  "control_plane_url": "{{ .atlas_control_plane_url | default \"http://localhost:8080\" }}",
+  "api_token": "{{ .atlas_api_token | default \"change-me\" }}",
+  "heartbeat_interval_sec": {{ .atlas_heartbeat_interval | default 15 }},
+  "task_poll_interval_sec": {{ .atlas_task_poll_interval | default 20 }},
+  "world_repo_path": "{{ .atlas_world_repo | default (joinPath .chezmoi.sourceDir \"..\") }}",
+  "allow_all_commands": {{ .atlas_allow_all_commands | default false }},
+  "allowed_commands": {{ .atlas_allowed_commands | default (list \"echo\" \"ls\" \"cat\") }},
+  "lease_renew_seconds": {{ .atlas_lease_renew_seconds | default 30 }},
+  "permissions": {
+    "read_only": {{ .atlas_permissions_read_only | default true }},
+    "allowed_paths": {{ .atlas_allowed_paths | default (list "/var/log" "/etc") }}
+  },
+  "tags": {{ .atlas_agent_tags | default (list "role:server" "os:linux") }}
+}

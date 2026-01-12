@@ -1,0 +1,208 @@
+{
+  "seasonNumber": 18,
+  "startDate": "2026-01-12T09:21:35.549Z",
+  "participants": [
+    {
+      "id": "agent-13",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-13"
+      },
+      "stats": {
+        "wins": 15,
+        "losses": 5,
+        "draws": 0,
+        "score": 40,
+        "accuracy": 0.605,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 1108,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-14",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-14"
+      },
+      "stats": {
+        "wins": 13,
+        "losses": 6,
+        "draws": 1,
+        "score": 34,
+        "accuracy": 0.816,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 1139,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-17",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-17"
+      },
+      "stats": {
+        "wins": 16,
+        "losses": 4,
+        "draws": 0,
+        "score": 44,
+        "accuracy": 0.709,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 819,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-18",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-18"
+      },
+      "stats": {
+        "wins": 12,
+        "losses": 8,
+        "draws": 0,
+        "score": 28,
+        "accuracy": 0.73,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 996,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-20",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-20"
+      },
+      "stats": {
+        "wins": 16,
+        "losses": 4,
+        "draws": 0,
+        "score": 44,
+        "accuracy": 0.63,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 1159,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-21",
+      "strategy": "aggressive",
+      "config": {
+        "name": "agent-21"
+      },
+      "stats": {
+        "wins": 13,
+        "losses": 7,
+        "draws": 0,
+        "score": 32,
+        "accuracy": 0.637,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 746,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-23",
+      "strategy": "conservative",
+      "config": {
+        "name": "agent-23"
+      },
+      "stats": {
+        "wins": 15,
+        "losses": 5,
+        "draws": 0,
+        "score": 40,
+        "accuracy": 0.867,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 617,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    },
+    {
+      "id": "agent-24",
+      "strategy": "conservative",
+      "config": {
+        "name": "agent-24"
+      },
+      "stats": {
+        "wins": 9,
+        "losses": 6,
+        "draws": 2,
+        "score": 23,
+        "accuracy": 0.908,
+        "totalChallenges": 20,
+        "averageResponseTimeMs": 1156,
+        "lastActiveAt": "2026-01-12T09:21:35.549Z"
+      }
+    }
+  ],
+  "leaderboard": [
+    {
+      "agentId": "agent-17",
+      "rank": 1,
+      "score": 44,
+      "wins": 16,
+      "losses": 4
+    },
+    {
+      "agentId": "agent-20",
+      "rank": 2,
+      "score": 44,
+      "wins": 16,
+      "losses": 4
+    },
+    {
+      "agentId": "agent-13",
+      "rank": 3,
+      "score": 40,
+      "wins": 15,
+      "losses": 5
+    },
+    {
+      "agentId": "agent-23",
+      "rank": 4,
+      "score": 40,
+      "wins": 15,
+      "losses": 5
+    },
+    {
+      "agentId": "agent-14",
+      "rank": 5,
+      "score": 34,
+      "wins": 13,
+      "losses": 6
+    },
+    {
+      "agentId": "agent-21",
+      "rank": 6,
+      "score": 32,
+      "wins": 13,
+      "losses": 7
+    },
+    {
+      "agentId": "agent-18",
+      "rank": 7,
+      "score": 28,
+      "wins": 12,
+      "losses": 8
+    },
+    {
+      "agentId": "agent-24",
+      "rank": 8,
+      "score": 23,
+      "wins": 9,
+      "losses": 6
+    }
+  ],
+  "analytics": {
+    "totalRounds": 20,
+    "totalChallenges": 200,
+    "avgAccuracy": 0.73775,
+    "topPerformer": "agent-17"
+  },
+  "securityEvents": [],
+  "endDate": "2026-01-12T09:21:35.549Z"
+}
