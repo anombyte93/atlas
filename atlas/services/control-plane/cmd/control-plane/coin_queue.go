@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -24,7 +25,7 @@ type CoinJob struct {
 	Payload    map[string]any `json:"payload"`
 	Attempts   int            `json:"attempts"`
 	MaxAttempt int            `json:"max_attempt,omitempty"` // For settle retries
-	Status     string         `json:"status"` // pending, running, done, failed
+	Status     string         `json:"status"`                // pending, running, done, failed
 	LastError  string         `json:"last_error,omitempty"`
 	NextRun    time.Time      `json:"next_run"`
 	CreatedAt  time.Time      `json:"created_at"`
@@ -35,6 +36,22 @@ type CoinQueue struct {
 	mu     sync.Mutex
 	jobs   map[string]*CoinJob
 	logRef string
+}
+
+// getStringPayload extracts a string value from a job payload with validation.
+func getStringPayload(payload map[string]any, key string) (string, error) {
+	if payload == nil {
+		return "", fmt.Errorf("payload is nil; missing %q", key)
+	}
+	val, ok := payload[key]
+	if !ok {
+		return "", fmt.Errorf("payload missing key %q", key)
+	}
+	strVal, ok := val.(string)
+	if !ok {
+		return "", fmt.Errorf("payload key %q must be a string", key)
+	}
+	return strVal, nil
 }
 
 func NewCoinQueue(logPath string) *CoinQueue {
@@ -112,19 +129,52 @@ func (q *CoinQueue) Due(now time.Time) []*CoinJob {
 
 // WorkerLoop processes due jobs with retry/backoff. It runs forever.
 func (q *CoinQueue) WorkerLoop(coin CoinIntegration, cfg Config) {
+	workerCount := runtime.NumCPU()
+	if workerCount < 2 {
+		workerCount = 2
+	}
+	if workerCount > 8 {
+		workerCount = 8
+	}
+
+	jobCh := make(chan *CoinJob, workerCount*2)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for job := range jobCh {
+				q.handle(job, coin, cfg)
+			}
+		}()
+	}
+
 	ticker := time.NewTicker(2 * time.Second)
 	for now := range ticker.C {
-		due := q.Due(now)
-		for _, job := range due {
-			q.handle(job, coin, cfg)
+		for _, job := range q.Due(now) {
+			if q.claim(job) {
+				jobCh <- job
+			}
 		}
 	}
 }
 
+func (q *CoinQueue) claim(job *CoinJob) bool {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if existing, ok := q.jobs[job.ID]; ok {
+		if existing.Status == "running" {
+			return false
+		}
+		existing.Attempts++
+		existing.Status = "running"
+		existing.LastError = ""
+		existing.NextRun = time.Time{}
+		q.persist()
+		return true
+	}
+	return false
+}
+
 func (q *CoinQueue) handle(job *CoinJob, coin CoinIntegration, cfg Config) {
-	job.Attempts++
-	job.Status = "running"
-	q.Mark(job)
+	start := time.Now()
 
 	err := q.dispatch(job, coin, cfg)
 	if err != nil {
@@ -146,15 +196,39 @@ func (q *CoinQueue) handle(job *CoinJob, coin CoinIntegration, cfg Config) {
 	job.LastError = ""
 	job.NextRun = time.Time{}
 	q.Mark(job)
+
+	if perfMetrics != nil {
+		perfMetrics.Observe("coin_queue_job_runtime", time.Since(start), slowJobThreshold)
+	}
 }
 
 func (q *CoinQueue) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) error {
+	ctx, cancel := context.WithTimeout(context.Background(), coinRequestTimeout)
+	defer cancel()
+
 	switch job.Kind {
 	case JobPost:
-		tid, _ := job.Payload["task_id"].(string)
-		template, _ := job.Payload["template"].(string)
-		reward, _ := job.Payload["reward"].(string)
-		_, err := coin.client.PostBounty(context.Background(), coin.poster, template, reward)
+		tid, err := getStringPayload(job.Payload, "task_id")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		poster, err := getStringPayload(job.Payload, "poster")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		template, err := getStringPayload(job.Payload, "template")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		escrowAmount, err := getStringPayload(job.Payload, "escrowAmount")
+		if err != nil {
+			return fmt.Errorf("job %s: %w", job.ID, err)
+		}
+		opStart := time.Now()
+		_, err = coin.client.PostBounty(ctx, poster, template, escrowAmount)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_post_bounty", time.Since(opStart), slowJobThreshold)
+		}
 		if err != nil {
 			return err
 		}
@@ -167,7 +241,11 @@ func (q *CoinQueue) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) err
 		bid, _ := job.Payload["bounty_id"].(string)
 		agent, _ := job.Payload["agent"].(string)
 		stake, _ := job.Payload["stake"].(string)
-		_, err := coin.client.SubmitSolution(context.Background(), bid, agent, stake, job.Payload)
+		opStart := time.Now()
+		_, err := coin.client.SubmitSolution(ctx, bid, agent, stake, job.Payload)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_submit_solution", time.Since(opStart), slowJobThreshold)
+		}
 		if err != nil {
 			return err
 		}
@@ -177,12 +255,21 @@ func (q *CoinQueue) dispatch(job *CoinJob, coin CoinIntegration, cfg Config) err
 		bid, _ := job.Payload["bounty_id"].(string)
 		success, _ := job.Payload["success"].(bool)
 		evidence := map[string]any{"ci_passed": success}
-		if res, err := coin.client.Verify(context.Background(), bid, evidence); err != nil {
+		opStart := time.Now()
+		res, err := coin.client.Verify(ctx, bid, evidence)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_verify", time.Since(opStart), slowJobThreshold)
+		}
+		if err != nil {
 			return err
 		} else if res != nil && !res.Passed {
 			return fmt.Errorf("verify failed bounty %s", bid)
 		}
-		_, err := coin.client.Settle(context.Background(), bid)
+		opStart = time.Now()
+		_, err = coin.client.Settle(ctx, bid)
+		if perfMetrics != nil {
+			perfMetrics.Observe("coin_http_settle", time.Since(opStart), slowJobThreshold)
+		}
 		if err == nil {
 			updateCoinStatus(job.TaskID, "settled", "", bid)
 		}
