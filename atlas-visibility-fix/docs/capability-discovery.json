@@ -1,0 +1,51 @@
+{
+  "commands_matched": [
+    {"name": "/atlas-validate", "relevance": 0.9, "why": "Execution test planning for Atlas"},
+    {"name": "/audit-visibility", "relevance": 0.8, "why": "Context audit for visibility issues"},
+    {"name": "atomic-write.sh", "relevance": 0.9, "why": "Safe database writes"},
+    {"name": "file-lock.sh", "relevance": 0.8, "why": "Concurrent database access"},
+    {"name": "fault-tolerant-exec.sh", "relevance": 0.8, "why": "Robust execution patterns"},
+    {"name": "shell-security.sh", "relevance": 0.7, "why": "Shell security best practices"}
+  ],
+  "skills_matched": [
+    {"name": "evidence-override-validation", "relevance": 0.85, "why": "Verify actual system state"},
+    {"name": "sentinel-meta-validation", "relevance": 0.8, "why": "5-phase validation loop"},
+    {"name": "audit-atlas-workflow", "relevance": 0.95, "why": "Atlas-specific troubleshooting"},
+    {"name": "task-verification-skill", "relevance": 0.8, "why": "Validate before fixes"},
+    {"name": "scriptify", "relevance": 0.75, "why": "Generate deterministic scripts"}
+  ],
+  "mcp_tools_matched": [
+    {"server": "terminal-context-kb", "tool": "search_terminal_history", "relevance": 0.85, "why": "Find proven patterns"},
+    {"server": "context7", "tool": "query-docs", "relevance": 0.8, "why": "SQLite best practices docs"},
+    {"server": "ideas", "tool": "capture_idea", "relevance": 0.7, "why": "Document decisions"}
+  ],
+  "scripts_matched": [
+    {"name": "state-automation/lib/error-handling.sh", "relevance": 0.95, "why": "Comprehensive error handling"},
+    {"name": "bounty-scanner/lib/backoff.sh", "relevance": 0.9, "why": "Exponential backoff with jitter"},
+    {"name": "state-automation/lib/file-checks.sh", "relevance": 0.85, "why": "SQLite file operations"},
+    {"name": "mcp-health-check.sh", "relevance": 0.75, "why": "Health check patterns"}
+  ],
+  "qrgs_matched": [
+    {"name": "monetizer/scripts/health-check.sh", "relevance": 0.9, "pattern": "SQLite health checks with structured JSON output"},
+    {"name": "tmux-injection.md", "relevance": 0.8, "pattern": "Race condition prevention"},
+    {"name": "c-lias/install.sh", "relevance": 0.75, "pattern": "Cross-platform compatibility"},
+    {"name": "bootstrap_chezmoi.sh", "relevance": 0.7, "pattern": "Simplicity with validation"}
+  ],
+  "recommended_workflow": {
+    "template": "database-refactor-with-validation",
+    "phases": [
+      "database-schema-design",
+      "migration-script", 
+      "implementation-with-tests",
+      "validation-gates",
+      "cleanup-and-documentation"
+    ],
+    "commands": [
+      "/codex-exec 'Design SQLite schema'",
+      "/codex-exec 'Implement migration'",
+      "/atlas-validate for test planning",
+      "/karen for validation",
+      "/steve for architecture review"
+    ]
+  }
+}
