@@ -18,16 +18,17 @@ const (
 )
 
 type CoinJob struct {
-	ID        string         `json:"id"`
-	TaskID    string         `json:"task_id"`
-	Kind      CoinJobKind    `json:"kind"`
-	Payload   map[string]any `json:"payload"`
-	Attempts  int            `json:"attempts"`
-	Status    string         `json:"status"` // pending, done, failed
-	LastError string         `json:"last_error,omitempty"`
-	NextRun   time.Time      `json:"next_run"`
-	CreatedAt time.Time      `json:"created_at"`
-	RequestID string         `json:"request_id,omitempty"`
+	ID         string         `json:"id"`
+	TaskID     string         `json:"task_id"`
+	Kind       CoinJobKind    `json:"kind"`
+	Payload    map[string]any `json:"payload"`
+	Attempts   int            `json:"attempts"`
+	MaxAttempt int            `json:"max_attempt,omitempty"` // For settle retries
+	Status     string         `json:"status"` // pending, running, done, failed
+	LastError  string         `json:"last_error,omitempty"`
+	NextRun    time.Time      `json:"next_run"`
+	CreatedAt  time.Time      `json:"created_at"`
+	RequestID  string         `json:"request_id,omitempty"`
 }
 
 type CoinQueue struct {
@@ -80,6 +81,9 @@ func (q *CoinQueue) Enqueue(job *CoinJob) {
 	if job.RequestID == "" {
 		job.RequestID = job.ID
 	}
+	if job.MaxAttempt == 0 {
+		job.MaxAttempt = 5 // Default max attempts
+	}
 	q.jobs[job.ID] = job
 	q.persist()
 }
@@ -125,7 +129,11 @@ func (q *CoinQueue) handle(job *CoinJob, coin CoinIntegration, cfg Config) {
 	err := q.dispatch(job, coin, cfg)
 	if err != nil {
 		job.LastError = err.Error()
-		if job.Attempts >= 5 {
+		maxAttempts := job.MaxAttempt
+		if maxAttempts == 0 {
+			maxAttempts = 5
+		}
+		if job.Attempts >= maxAttempts {
 			job.Status = "failed"
 		} else {
 			job.Status = "pending"

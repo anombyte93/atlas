@@ -132,7 +132,15 @@ type CoinIntegration struct {
 	stakePct int
 	timeout  time.Duration
 	auth     string
-	queue    *CoinQueue
+	queue    CoinQueueInterface
+}
+
+// CoinQueueInterface defines the queue operations needed by CoinIntegration
+type CoinQueueInterface interface {
+	Enqueue(job *CoinJob)
+	Mark(job *CoinJob)
+	Due(now time.Time) []*CoinJob
+	WorkerLoop(coin CoinIntegration, cfg Config)
 }
 
 type CoinClient interface {
@@ -230,10 +238,21 @@ func main() {
 		auth:     cfg.CoinAuthToken,
 	}
 	queuePath := cfg.CoinQueuePath
+	legacyPath := ""
 	if queuePath == "" {
-		queuePath = filepath.Join(cfg.DataDir, "coin-jobs.json")
+		queuePath = filepath.Join(cfg.DataDir, "coin-queue.db")
+		legacyPath = filepath.Join(cfg.DataDir, "coin-jobs.json")
 	}
-	coin.queue = NewCoinQueue(queuePath)
+	sqliteQueue, err := NewCoinQueueSQLite(queuePath, legacyPath)
+	if err != nil {
+		log.Printf("failed to create sqlite coin queue: %v", err)
+		// Fall back to legacy queue if SQLite fails
+		if legacyPath != "" {
+			coin.queue = NewCoinQueue(legacyPath)
+		}
+	} else {
+		coin.queue = sqliteQueue
+	}
 
 	store := &TaskStore{tasks: map[string]*Task{}, logPath: filepath.Join(cfg.DataDir, "tasks.jsonl"), db: db, audit: audit, worldRepo: cfg.WorldRepo}
 	taskStoreInstance = store
@@ -242,8 +261,15 @@ func main() {
 	store.loadFromDB()
 	loadDevicesFromDB(registry)
 
+	// Start worker loop (handles both legacy and SQLite queues)
 	go coin.queue.WorkerLoop(coin, cfg)
-	go reconcileCoinJobs(coin, store)
+	// Start reconciliation loop (uses SQLite queue if available, otherwise legacy)
+	if sqliteQueue != nil {
+		reconciler := NewReconciler(coin, store, sqliteQueue)
+		go reconciler.Run()
+	} else {
+		go reconcileCoinJobs(coin, store)
+	}
 
 	go watchConfig(cfg.ConfigPath, func() {
 		newCfg := loadConfig(cfg.ConfigPath)
@@ -919,11 +945,18 @@ func initDB(path string) *sql.DB {
 		claimed_by TEXT,
 		lease_until TEXT,
 		next_eligible TEXT,
-		leader_token INTEGER DEFAULT 0
+		leader_token INTEGER DEFAULT 0,
+		coin_bounty_id TEXT,
+		coin_status TEXT,
+		coin_last_error TEXT
 	)`)
+	// Add columns with backwards compatibility
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN lease_expiries INTEGER")
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN next_eligible TEXT")
 	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN leader_token INTEGER")
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN coin_bounty_id TEXT")
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN coin_status TEXT")
+	_, _ = db.Exec("ALTER TABLE tasks ADD COLUMN coin_last_error TEXT")
 	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS devices (
 		id TEXT PRIMARY KEY,
 		json TEXT NOT NULL,
@@ -936,6 +969,18 @@ func initDB(path string) *sql.DB {
 		expires_at TEXT NOT NULL,
 		token INTEGER DEFAULT 0
 	)`)
+	// Coin metrics table for persistent counters
+	_, _ = db.Exec(`CREATE TABLE IF NOT EXISTS coin_metrics (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp TEXT NOT NULL,
+		operation TEXT NOT NULL,
+		success INTEGER NOT NULL,
+		task_id TEXT,
+		bounty_id TEXT,
+		error_message TEXT
+	)`)
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS coin_metrics_timestamp_idx ON coin_metrics(timestamp)")
+	_, _ = db.Exec("CREATE INDEX IF NOT EXISTS coin_metrics_operation_idx ON coin_metrics(operation)")
 	return db
 }
 
@@ -952,11 +997,14 @@ func (s *TaskStore) persistTask(t Task) error {
 		}
 	}
 	b, _ := json.Marshal(t)
-	_, err := s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, lease_expiries, claimed_by, lease_until, next_eligible, leader_token)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	_, err := s.db.Exec(`INSERT INTO tasks (id, json, status, updated_at, attempts, lease_expiries, claimed_by, lease_until, next_eligible, leader_token, coin_bounty_id, coin_status, coin_last_error)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET json=excluded.json, status=excluded.status, updated_at=excluded.updated_at,
-			attempts=excluded.attempts, lease_expiries=excluded.lease_expiries, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until, next_eligible=excluded.next_eligible, leader_token=excluded.leader_token`,
-		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.LeaseExpiries, t.ClaimedBy, t.LeaseUntil, t.NextEligible, t.LeaderToken)
+			attempts=excluded.attempts, lease_expiries=excluded.lease_expiries, claimed_by=excluded.claimed_by, lease_until=excluded.lease_until,
+			next_eligible=excluded.next_eligible, leader_token=excluded.leader_token, coin_bounty_id=excluded.coin_bounty_id,
+			coin_status=excluded.coin_status, coin_last_error=excluded.coin_last_error`,
+		t.ID, string(b), t.Status, t.UpdatedAt, t.Attempts, t.LeaseExpiries, t.ClaimedBy, t.LeaseUntil, t.NextEligible, t.LeaderToken,
+		t.CoinBountyID, t.CoinStatus, t.CoinLastError)
 	if err != nil {
 		return err
 	}
