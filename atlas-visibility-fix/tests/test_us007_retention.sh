@@ -5,7 +5,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRACKER="$SCRIPT_DIR/../atlas-track-v2"
-ATLAS_PY="/home/anombyte/.claude/skills/atlas.py"
+ATLAS_PY="${ATLAS_PY:-/home/anombyte/.claude/skills/atlas.py}"
+
+if [ ! -f "$ATLAS_PY" ]; then
+  echo "SKIP: atlas.py not found at $ATLAS_PY"
+  exit 0
+fi
 
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
