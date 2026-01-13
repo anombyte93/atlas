@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "id": "doubt-logic-validator",
+  "device_id": "archie",
+  "version": "1.0.0",
+  "name": "Logic Doubt Agent",
+  "description": "Validates correctness, logical consistency, and git diff proof for agent completions",
+  "type": "validation",
+  "control_plane_url": "http://localhost:8080",
+  "api_token": "dev-token-archie",
+  "heartbeat_interval_sec": 60,
+  "task_poll_interval_sec": 30,
+  "command": "/home/anombyte/.claude/agents/doubt-logic.sh",
+  "allow_all_commands": false,
+  "allowed_commands": ["/home/anombyte/.claude/agents/doubt-logic.sh"],
+  "permissions": {
+    "read_only": true,
+    "allowed_paths": ["/home/anombyte/Atlas", "/home/anombyte/.claude", "/tmp"]
+  },
+  "tags": ["validator", "logic", "completion", "doubt-guild"],
+  "capabilities": {
+    "validates": ["logic", "consistency", "git-diff", "file-existence"],
+    "severity_levels": ["LIGHT", "DEEP", "EXECUTIVE"],
+    "timeout_sec": 5
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "id": "doubt-security-validator",
+  "device_id": "archie",
+  "version": "1.0.0",
+  "name": "Security Doubt Agent",
+  "description": "Validates security posture: command injection, secrets exposure, file permissions",
+  "type": "validation",
+  "control_plane_url": "http://localhost:8080",
+  "api_token": "dev-token-archie",
+  "heartbeat_interval_sec": 60,
+  "task_poll_interval_sec": 30,
+  "command": "/home/anombyte/.claude/agents/doubt-security.sh",
+  "allow_all_commands": false,
+  "allowed_commands": ["/home/anombyte/.claude/agents/doubt-security.sh"],
+  "permissions": {
+    "read_only": true,
+    "allowed_paths": ["/home/anombyte/Atlas", "/home/anombyte/.claude", "/tmp"]
+  },
+  "tags": ["validator", "security", "completion", "doubt-guild"],
+  "capabilities": {
+    "validates": ["command-injection", "secrets", "permissions", "data-validation"],
+    "severity_levels": ["LIGHT", "DEEP", "EXECUTIVE"],
+    "timeout_sec": 5
+  }
+}

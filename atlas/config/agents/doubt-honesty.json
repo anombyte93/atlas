@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "id": "doubt-honesty-validator",
+  "device_id": "archie",
+  "version": "1.0.0",
+  "name": "Honesty Doubt Agent",
+  "description": "Detects exaggeration and false claims: verifies file counts, test claims, vague quantifiers",
+  "type": "validation",
+  "control_plane_url": "http://localhost:8080",
+  "api_token": "dev-token-archie",
+  "heartbeat_interval_sec": 60,
+  "task_poll_interval_sec": 30,
+  "command": "/home/anombyte/.claude/agents/doubt-honesty.sh",
+  "allow_all_commands": false,
+  "allowed_commands": ["/home/anombyte/.claude/agents/doubt-honesty.sh"],
+  "permissions": {
+    "read_only": true,
+    "allowed_paths": ["/home/anombyte/Atlas", "/home/anombyte/.claude", "/tmp"]
+  },
+  "tags": ["validator", "honesty", "completion", "doubt-guild"],
+  "capabilities": {
+    "validates": ["exaggeration", "file-counts", "test-claims", "vague-claims"],
+    "severity_levels": ["LIGHT", "DEEP", "EXECUTIVE"],
+    "timeout_sec": 5
+  }
+}
