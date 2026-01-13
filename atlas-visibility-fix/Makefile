@@ -15,6 +15,15 @@ install: all
 
 test:
 	@echo "Running tests..."
+	@./tests/test_us001_sqlite_backend.sh
+	@./tests/test_us002_uuid.sh
+	@./tests/test_us003_error_handling.sh
+	@./tests/test_us004_escaping.sh
+	@./tests/test_us005_pagination.sh
+	@./tests/test_us006_health_check.sh
+	@./tests/test_us007_retention.sh
+	@./tests/test_us008_retry.sh
+	@./tests/test_us009_schema_version.sh
 	@./tests/test_concurrent.sh
 	@./tests/test_large_output.sh
 	@./tests/test_binary.sh

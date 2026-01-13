@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRACKER="$SCRIPT_DIR/../atlas-track-v2"
 DB_PATH="${XDG_CONFIG_HOME:-$HOME/.config}/atlas/visibility.db"
 
