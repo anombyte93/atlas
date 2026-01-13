@@ -1,0 +1,10 @@
+[Unit]
+Description=Atlas Visibility Database Cleanup
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/anombyte/.claude/skills/atlas.py cleanup
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,62 @@
+name: Atlas Visibility System Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3
+    - name: Run integration tests
+      run: |
+        chmod +x tests/test_*.sh
+        make test
+    - name: Check database integrity
+      run: |
+        sqlite3 ~/.config/atlas/visibility.db "PRAGMA integrity_check;"
+        sqlite3 ~/.config/atlas/visibility.db "PRAGMA foreign_key_check;"
+    - name: Check schema version
+      run: |
+        VERSION=$(sqlite3 ~/.config/atlas/visibility.db "SELECT value FROM metadata WHERE key = 'schema_version';")
+        if [ "$VERSION" != "1.0" ]; then
+          echo "Schema version mismatch: $VERSION"
+          exit 1
+        fi
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run ShellCheck
+      uses: ludeeus/action-shellcheck@master
+      with:
+        scandir: './scripts'
+        additional_files: './atlas-track-v2'
+    - name: Check for SQL injection patterns
+      run: |
+        ! grep -r "sqlite_run.*\$RETENTION_DAYS" ./atlas-track-v2 || exit 1
+        echo "✅ No direct SQL injection patterns found"
+
+  performance-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run performance test
+      run: |
+        chmod +x tests/test_performance.sh
+        ./tests/test_performance.sh
