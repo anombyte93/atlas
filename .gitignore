@@ -29,3 +29,17 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# Unrelated scrapers (temporary)
+*_scraper.py
+FIX_QUEUES.md
+PROJECT_STATE.md
+Provides
+
+# Test artifacts and temporary projects
+atlas-logo-animation/
+osrs-flip-finder/
+mcp-gateway-creator/
+
+# Build artifacts
+atlas/services/control-plane/mcp-server/atlas-mcp-server
