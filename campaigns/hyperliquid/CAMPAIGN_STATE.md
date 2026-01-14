@@ -1,0 +1,24 @@
+# Campaign State
+
+- cycle: 2
+- status: WAVE2_RUNNING
+- active_agents: [CORS-Hunter, GraphQL-Scanner, Logic-Abuser, Validator-Prober, Coordinator]
+- findings_count: 0
+- verdict: PENDING
+- wave_start: 2026-01-14T12:00:00Z
+- wave1_end: 2026-01-14T14:50:00Z
+- wave2_start: 2026-01-14T15:30:00Z
+- wave1_results:
+  - bbh-001: IDOR Hunter - No critical IDOR confirmed
+  - bbh-002: Auth Bypass - No auth bypass found
+  - bbh-016: Recon - AWS/CloudFront/nginx, permissive CORS
+  - bbh-018: Impact - CVSS 7.5, bounty $100K-$125K
+  - bbh-020: Manager - Campaign tracking complete
+- wave2_agents:
+  - CORS-Hunter: Deep CORS misconfiguration analysis
+  - GraphQL-Scanner: GraphQL injection and introspection
+  - Logic-Abuser: Business logic bypass attempts
+  - Validator-Prober: Input validation edge cases
+  - Coordinator: Wave 2 orchestration and tracking
+- next_wave: 3
+- next_focus: Authorization bypass, race conditions, wallet operations
