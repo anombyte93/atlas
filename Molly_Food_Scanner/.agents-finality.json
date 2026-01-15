@@ -1,0 +1,111 @@
+# @agents-finality Governance Setup
+
+## Overview
+Molly_Food_Scanner uses @agents-finality for automated quality gates.
+
+## Pre-Commit Hooks
+
+### Hook: contract-validator
+**Purpose**: Validates all contracts before allowing commit
+
+**What it does**:
+1. Reads TODO.md and checks contract states
+2. Validates all completed contracts have passed validation
+3. If any contract failed validation: BLOCK commit
+4. If any contract in_progress: BLOCK commit
+5. Only allows commit if all contracts are `completed`
+
+**Usage**:
+```bash
+# Automatically runs on: git commit
+```
+
+### Hook: validation-gate
+**Purpose**: Double validation gate (Claude + Deepseek)
+
+**What it does**:
+1. Calls mcp-cli validation endpoint
+2. Runs Deepseek validation
+3. Runs Claude validation
+4. Both must PASS for work to be accepted
+5. If either FAILS: BLOCK commit and show issues
+
+**Usage**:
+```bash
+# Automatically runs on: git commit
+```
+
+## Contract State Machine
+
+```
+pending → in_progress → validation → completed
+   ↑                                      ↓
+   └───────────── BLOCKED ──────────────┘
+```
+
+**State Transitions**:
+- `pending` → `in_progress`: When agent starts work
+- `in_progress` → `validation`: When agent marks complete
+- `validation` → `completed`: When both Claude & Deepseek pass
+- `validation` → `in_progress`: If validation fails
+- Any state → `BLOCKED`: If contract cannot be fulfilled
+
+## Integration with mcp-cli
+
+The hooks call mcp-cli's validation API:
+
+```bash
+# Contract validator hook
+curl -X POST http://localhost:3000/api/validate/contract \
+  -H "Content-Type: application/json" \
+  -d '{"contract": "M1", "changes": ["src/components/UploadArea.tsx"]}'
+
+# Validation gate hook
+curl -X POST http://localhost:3000/api/validate/work \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "..."}'
+```
+
+## File: .agents-finality.json
+
+Configuration for @agents-finality:
+
+```json
+{
+  "project": "Molly_Food_Scanner",
+  "governance": "full",
+  "hooks": {
+    "pre-commit": [
+      "contract-validator",
+      "validation-gate"
+    ],
+    "pre-push": [
+      "full-validation"
+    ]
+  },
+  "agents": {
+    "orchestrator": "claude",
+    "implementers": ["codex", "codex", "codex", "codex", "codex"],
+    "researchers": ["gemini", "gemini", "gemini"],
+    "validators": ["deepseek", "claude"]
+  },
+  "contracts_required": true,
+  "auto_validation": true
+}
+```
+
+## Manual Override (Emergency Only)
+
+To bypass governance in emergencies:
+```bash
+git commit --no-verify -m "emergency fix"
+```
+
+Use ONLY when:
+- System is down
+- Hotfix needed immediately
+- Document why in commit message
+
+---
+
+**This ensures quality before any code is committed.**

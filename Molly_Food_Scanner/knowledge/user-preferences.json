@@ -1,0 +1,25 @@
+{
+  "user_id": "molly",
+  "allergies": [
+    "peanuts",
+    "shellfish"
+  ],
+  "avoid_list": [
+    "sodium nitrite",
+    "Red 40",
+    "TBHQ",
+    "BHA",
+    "BHT"
+  ],
+  "dietary_restrictions": [
+    "no pork",
+    "lactose sensitive"
+  ],
+  "bad_food_ratings": {
+    "Frozen Pepperoni Pizza": 1,
+    "Energy Drink": 1,
+    "Gummy Candy": 2,
+    "Instant Ramen - Chicken": 1
+  },
+  "notes": "Avoid artificial dyes; prefer whole-food ingredients."
+}

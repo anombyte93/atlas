@@ -1,0 +1,1345 @@
+{
+  "foods": [
+    {
+      "name": "Classic White Bread",
+      "barcode": "000111000111",
+      "ingredients": [
+        "enriched wheat flour",
+        "water",
+        "sugar",
+        "yeast",
+        "soybean oil",
+        "salt",
+        "calcium propionate"
+      ],
+      "chemicals": [
+        "calcium propionate (E282)",
+        "mono- and diglycerides (E471)",
+        "ascorbic acid (E300)"
+      ],
+      "health_score": 42
+    },
+    {
+      "name": "Whole Grain Sandwich Bread",
+      "barcode": "000111000112",
+      "ingredients": [
+        "whole wheat flour",
+        "water",
+        "honey",
+        "yeast",
+        "canola oil",
+        "salt"
+      ],
+      "chemicals": [
+        "ascorbic acid (E300)"
+      ],
+      "health_score": 68
+    },
+    {
+      "name": "Cheddar Cheese Slices",
+      "barcode": "000111000113",
+      "ingredients": [
+        "cheddar cheese",
+        "milk",
+        "salt",
+        "enzymes",
+        "annatto color"
+      ],
+      "chemicals": [
+        "annatto (E160b)"
+      ],
+      "health_score": 55
+    },
+    {
+      "name": "Vanilla Yogurt",
+      "barcode": "000111000114",
+      "ingredients": [
+        "cultured milk",
+        "sugar",
+        "vanilla",
+        "pectin"
+      ],
+      "chemicals": [
+        "pectin (E440)"
+      ],
+      "health_score": 60
+    },
+    {
+      "name": "Strawberry Yogurt",
+      "barcode": "000111000115",
+      "ingredients": [
+        "cultured milk",
+        "sugar",
+        "strawberries",
+        "pectin",
+        "carmine color"
+      ],
+      "chemicals": [
+        "pectin (E440)",
+        "carmine (E120)"
+      ],
+      "health_score": 52
+    },
+    {
+      "name": "Orange Soda",
+      "barcode": "000111000116",
+      "ingredients": [
+        "carbonated water",
+        "high fructose corn syrup",
+        "citric acid",
+        "natural flavors",
+        "sodium benzoate",
+        "Yellow 6"
+      ],
+      "chemicals": [
+        "sodium benzoate (E211)",
+        "citric acid (E330)",
+        "Yellow 6 (E110)"
+      ],
+      "health_score": 10
+    },
+    {
+      "name": "Cola Soft Drink",
+      "barcode": "000111000117",
+      "ingredients": [
+        "carbonated water",
+        "high fructose corn syrup",
+        "caramel color",
+        "phosphoric acid",
+        "natural flavors",
+        "caffeine"
+      ],
+      "chemicals": [
+        "caramel color (E150d)",
+        "phosphoric acid (E338)"
+      ],
+      "health_score": 8
+    },
+    {
+      "name": "Diet Cola",
+      "barcode": "000111000118",
+      "ingredients": [
+        "carbonated water",
+        "caramel color",
+        "phosphoric acid",
+        "aspartame",
+        "caffeine"
+      ],
+      "chemicals": [
+        "aspartame (E951)",
+        "caramel color (E150d)",
+        "phosphoric acid (E338)"
+      ],
+      "health_score": 12
+    },
+    {
+      "name": "Potato Chips - Sea Salt",
+      "barcode": "000111000119",
+      "ingredients": [
+        "potatoes",
+        "sunflower oil",
+        "sea salt"
+      ],
+      "chemicals": [],
+      "health_score": 35
+    },
+    {
+      "name": "Potato Chips - Barbecue",
+      "barcode": "000111000120",
+      "ingredients": [
+        "potatoes",
+        "vegetable oil",
+        "sugar",
+        "salt",
+        "spices",
+        "natural flavors",
+        "disodium inosinate",
+        "disodium guanylate"
+      ],
+      "chemicals": [
+        "disodium inosinate (E631)",
+        "disodium guanylate (E627)"
+      ],
+      "health_score": 22
+    },
+    {
+      "name": "Tomato Ketchup",
+      "barcode": "000111000121",
+      "ingredients": [
+        "tomato concentrate",
+        "vinegar",
+        "sugar",
+        "salt",
+        "spices"
+      ],
+      "chemicals": [
+        "acetic acid (E260)"
+      ],
+      "health_score": 50
+    },
+    {
+      "name": "Mayonnaise",
+      "barcode": "000111000122",
+      "ingredients": [
+        "soybean oil",
+        "water",
+        "egg yolks",
+        "vinegar",
+        "salt",
+        "sugar",
+        "calcium disodium EDTA"
+      ],
+      "chemicals": [
+        "calcium disodium EDTA (E385)",
+        "acetic acid (E260)"
+      ],
+      "health_score": 30
+    },
+    {
+      "name": "Mustard",
+      "barcode": "000111000123",
+      "ingredients": [
+        "water",
+        "mustard seed",
+        "vinegar",
+        "salt",
+        "turmeric"
+      ],
+      "chemicals": [
+        "acetic acid (E260)",
+        "turmeric (E100)"
+      ],
+      "health_score": 65
+    },
+    {
+      "name": "Chocolate Chip Cookies",
+      "barcode": "000111000124",
+      "ingredients": [
+        "wheat flour",
+        "sugar",
+        "chocolate chips",
+        "palm oil",
+        "baking soda",
+        "salt",
+        "soy lecithin"
+      ],
+      "chemicals": [
+        "soy lecithin (E322)",
+        "sodium bicarbonate (E500)"
+      ],
+      "health_score": 18
+    },
+    {
+      "name": "Oat Cereal",
+      "barcode": "000111000125",
+      "ingredients": [
+        "whole grain oats",
+        "sugar",
+        "salt",
+        "iron",
+        "vitamin B"
+      ],
+      "chemicals": [],
+      "health_score": 62
+    },
+    {
+      "name": "Honey Oat Cereal",
+      "barcode": "000111000126",
+      "ingredients": [
+        "whole grain oats",
+        "sugar",
+        "honey",
+        "salt",
+        "tocopherols"
+      ],
+      "chemicals": [
+        "mixed tocopherols (E306)"
+      ],
+      "health_score": 58
+    },
+    {
+      "name": "Granola Bar - Chocolate",
+      "barcode": "000111000127",
+      "ingredients": [
+        "rolled oats",
+        "sugar",
+        "corn syrup",
+        "chocolate",
+        "soy lecithin"
+      ],
+      "chemicals": [
+        "soy lecithin (E322)"
+      ],
+      "health_score": 24
+    },
+    {
+      "name": "Protein Bar - Vanilla",
+      "barcode": "000111000128",
+      "ingredients": [
+        "milk protein isolate",
+        "chicory root fiber",
+        "glycerin",
+        "natural flavors",
+        "sucralose"
+      ],
+      "chemicals": [
+        "sucralose (E955)"
+      ],
+      "health_score": 45
+    },
+    {
+      "name": "Almond Milk - Unsweetened",
+      "barcode": "000111000129",
+      "ingredients": [
+        "almondmilk",
+        "calcium carbonate",
+        "sea salt",
+        "gellan gum"
+      ],
+      "chemicals": [
+        "calcium carbonate (E170)",
+        "gellan gum (E418)"
+      ],
+      "health_score": 70
+    },
+    {
+      "name": "Almond Milk - Vanilla",
+      "barcode": "000111000130",
+      "ingredients": [
+        "almondmilk",
+        "sugar",
+        "calcium carbonate",
+        "natural flavors",
+        "gellan gum"
+      ],
+      "chemicals": [
+        "calcium carbonate (E170)",
+        "gellan gum (E418)"
+      ],
+      "health_score": 54
+    },
+    {
+      "name": "Soy Milk",
+      "barcode": "000111000131",
+      "ingredients": [
+        "soybeans",
+        "water",
+        "sugar",
+        "calcium carbonate",
+        "carrageenan"
+      ],
+      "chemicals": [
+        "calcium carbonate (E170)",
+        "carrageenan (E407)"
+      ],
+      "health_score": 48
+    },
+    {
+      "name": "Frozen Pepperoni Pizza",
+      "barcode": "000111000132",
+      "ingredients": [
+        "wheat flour",
+        "tomato sauce",
+        "mozzarella",
+        "pepperoni",
+        "sodium nitrite"
+      ],
+      "chemicals": [
+        "sodium nitrite (E250)"
+      ],
+      "health_score": 20
+    },
+    {
+      "name": "Frozen Margherita Pizza",
+      "barcode": "000111000133",
+      "ingredients": [
+        "wheat flour",
+        "tomato sauce",
+        "mozzarella",
+        "basil",
+        "olive oil"
+      ],
+      "chemicals": [],
+      "health_score": 40
+    },
+    {
+      "name": "Chicken Nuggets",
+      "barcode": "000111000134",
+      "ingredients": [
+        "chicken",
+        "water",
+        "wheat flour",
+        "salt",
+        "sodium phosphates"
+      ],
+      "chemicals": [
+        "sodium phosphates (E339)"
+      ],
+      "health_score": 28
+    },
+    {
+      "name": "Turkey Deli Slices",
+      "barcode": "000111000135",
+      "ingredients": [
+        "turkey",
+        "water",
+        "salt",
+        "sodium nitrite",
+        "sodium erythorbate"
+      ],
+      "chemicals": [
+        "sodium nitrite (E250)",
+        "sodium erythorbate (E316)"
+      ],
+      "health_score": 32
+    },
+    {
+      "name": "Bacon",
+      "barcode": "000111000136",
+      "ingredients": [
+        "pork",
+        "salt",
+        "sodium nitrite",
+        "sugar",
+        "smoke flavor"
+      ],
+      "chemicals": [
+        "sodium nitrite (E250)"
+      ],
+      "health_score": 15
+    },
+    {
+      "name": "Hot Dog",
+      "barcode": "000111000137",
+      "ingredients": [
+        "beef",
+        "water",
+        "salt",
+        "sodium nitrite",
+        "sodium phosphate"
+      ],
+      "chemicals": [
+        "sodium nitrite (E250)",
+        "sodium phosphate (E339)"
+      ],
+      "health_score": 14
+    },
+    {
+      "name": "Canned Tomato Soup",
+      "barcode": "000111000138",
+      "ingredients": [
+        "tomato puree",
+        "water",
+        "sugar",
+        "salt",
+        "citric acid"
+      ],
+      "chemicals": [
+        "citric acid (E330)"
+      ],
+      "health_score": 46
+    },
+    {
+      "name": "Canned Chicken Noodle Soup",
+      "barcode": "000111000139",
+      "ingredients": [
+        "chicken broth",
+        "noodles",
+        "carrots",
+        "celery",
+        "monosodium glutamate"
+      ],
+      "chemicals": [
+        "monosodium glutamate (E621)"
+      ],
+      "health_score": 38
+    },
+    {
+      "name": "Instant Ramen - Chicken",
+      "barcode": "000111000140",
+      "ingredients": [
+        "noodles",
+        "palm oil",
+        "salt",
+        "msg",
+        "disodium inosinate",
+        "disodium guanylate"
+      ],
+      "chemicals": [
+        "monosodium glutamate (E621)",
+        "disodium inosinate (E631)",
+        "disodium guanylate (E627)",
+        "TBHQ (E319)"
+      ],
+      "health_score": 12
+    },
+    {
+      "name": "Instant Ramen - Spicy",
+      "barcode": "000111000141",
+      "ingredients": [
+        "noodles",
+        "palm oil",
+        "salt",
+        "msg",
+        "spices",
+        "TBHQ"
+      ],
+      "chemicals": [
+        "monosodium glutamate (E621)",
+        "TBHQ (E319)"
+      ],
+      "health_score": 11
+    },
+    {
+      "name": "Frozen French Fries",
+      "barcode": "000111000142",
+      "ingredients": [
+        "potatoes",
+        "vegetable oil",
+        "dextrose",
+        "sodium acid pyrophosphate"
+      ],
+      "chemicals": [
+        "sodium acid pyrophosphate (E450)"
+      ],
+      "health_score": 30
+    },
+    {
+      "name": "Frozen Waffles",
+      "barcode": "000111000143",
+      "ingredients": [
+        "wheat flour",
+        "sugar",
+        "vegetable oil",
+        "leavening",
+        "soy lecithin"
+      ],
+      "chemicals": [
+        "soy lecithin (E322)",
+        "sodium bicarbonate (E500)"
+      ],
+      "health_score": 26
+    },
+    {
+      "name": "Maple Syrup",
+      "barcode": "000111000144",
+      "ingredients": [
+        "maple syrup"
+      ],
+      "chemicals": [],
+      "health_score": 40
+    },
+    {
+      "name": "Pancake Mix",
+      "barcode": "000111000145",
+      "ingredients": [
+        "wheat flour",
+        "sugar",
+        "leavening",
+        "salt"
+      ],
+      "chemicals": [
+        "sodium bicarbonate (E500)",
+        "monocalcium phosphate (E341)"
+      ],
+      "health_score": 36
+    },
+    {
+      "name": "Chocolate Milk",
+      "barcode": "000111000146",
+      "ingredients": [
+        "milk",
+        "sugar",
+        "cocoa",
+        "carrageenan"
+      ],
+      "chemicals": [
+        "carrageenan (E407)"
+      ],
+      "health_score": 44
+    },
+    {
+      "name": "Fruit Juice Blend",
+      "barcode": "000111000147",
+      "ingredients": [
+        "apple juice",
+        "pear juice",
+        "grape juice",
+        "ascorbic acid"
+      ],
+      "chemicals": [
+        "ascorbic acid (E300)"
+      ],
+      "health_score": 50
+    },
+    {
+      "name": "Energy Drink",
+      "barcode": "000111000148",
+      "ingredients": [
+        "carbonated water",
+        "sugar",
+        "citric acid",
+        "taurine",
+        "caffeine",
+        "Yellow 5"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "Yellow 5 (E102)"
+      ],
+      "health_score": 9
+    },
+    {
+      "name": "Sports Drink - Blue",
+      "barcode": "000111000149",
+      "ingredients": [
+        "water",
+        "sugar",
+        "citric acid",
+        "salt",
+        "Blue 1"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "Blue 1 (E133)"
+      ],
+      "health_score": 16
+    },
+    {
+      "name": "Peanut Butter",
+      "barcode": "000111000150",
+      "ingredients": [
+        "peanuts",
+        "salt",
+        "sugar",
+        "palm oil"
+      ],
+      "chemicals": [],
+      "health_score": 58
+    },
+    {
+      "name": "Jelly - Grape",
+      "barcode": "000111000151",
+      "ingredients": [
+        "grape juice",
+        "sugar",
+        "pectin",
+        "citric acid"
+      ],
+      "chemicals": [
+        "pectin (E440)",
+        "citric acid (E330)"
+      ],
+      "health_score": 34
+    },
+    {
+      "name": "Ice Cream - Vanilla",
+      "barcode": "000111000152",
+      "ingredients": [
+        "milk",
+        "cream",
+        "sugar",
+        "vanilla",
+        "guar gum"
+      ],
+      "chemicals": [
+        "guar gum (E412)"
+      ],
+      "health_score": 32
+    },
+    {
+      "name": "Ice Cream - Strawberry",
+      "barcode": "000111000153",
+      "ingredients": [
+        "milk",
+        "cream",
+        "sugar",
+        "strawberries",
+        "carmine color"
+      ],
+      "chemicals": [
+        "carmine (E120)"
+      ],
+      "health_score": 30
+    },
+    {
+      "name": "Frozen Vegetables - Mixed",
+      "barcode": "000111000154",
+      "ingredients": [
+        "peas",
+        "carrots",
+        "corn"
+      ],
+      "chemicals": [],
+      "health_score": 72
+    },
+    {
+      "name": "Canned Corn",
+      "barcode": "000111000155",
+      "ingredients": [
+        "corn",
+        "water",
+        "salt"
+      ],
+      "chemicals": [],
+      "health_score": 62
+    },
+    {
+      "name": "Canned Tuna",
+      "barcode": "000111000156",
+      "ingredients": [
+        "tuna",
+        "water",
+        "salt"
+      ],
+      "chemicals": [],
+      "health_score": 70
+    },
+    {
+      "name": "Frozen Fish Sticks",
+      "barcode": "000111000157",
+      "ingredients": [
+        "fish",
+        "wheat flour",
+        "vegetable oil",
+        "salt",
+        "sodium phosphate"
+      ],
+      "chemicals": [
+        "sodium phosphate (E339)"
+      ],
+      "health_score": 34
+    },
+    {
+      "name": "Pasta Sauce - Marinara",
+      "barcode": "000111000158",
+      "ingredients": [
+        "tomatoes",
+        "olive oil",
+        "garlic",
+        "basil",
+        "salt"
+      ],
+      "chemicals": [],
+      "health_score": 64
+    },
+    {
+      "name": "Pasta Sauce - Alfredo",
+      "barcode": "000111000159",
+      "ingredients": [
+        "cream",
+        "milk",
+        "cheese",
+        "salt",
+        "modified food starch"
+      ],
+      "chemicals": [
+        "modified starch (E1404)"
+      ],
+      "health_score": 38
+    },
+    {
+      "name": "Mac and Cheese - Boxed",
+      "barcode": "000111000160",
+      "ingredients": [
+        "pasta",
+        "cheese sauce mix",
+        "whey",
+        "Yellow 5",
+        "Yellow 6"
+      ],
+      "chemicals": [
+        "Yellow 5 (E102)",
+        "Yellow 6 (E110)"
+      ],
+      "health_score": 21
+    },
+    {
+      "name": "Rice Cakes - Plain",
+      "barcode": "000111000161",
+      "ingredients": [
+        "whole grain brown rice",
+        "salt"
+      ],
+      "chemicals": [],
+      "health_score": 66
+    },
+    {
+      "name": "Rice Cakes - Caramel",
+      "barcode": "000111000162",
+      "ingredients": [
+        "brown rice",
+        "sugar",
+        "caramel color",
+        "salt"
+      ],
+      "chemicals": [
+        "caramel color (E150a)"
+      ],
+      "health_score": 40
+    },
+    {
+      "name": "Trail Mix",
+      "barcode": "000111000163",
+      "ingredients": [
+        "nuts",
+        "raisins",
+        "chocolate",
+        "sunflower oil",
+        "tocopherols"
+      ],
+      "chemicals": [
+        "mixed tocopherols (E306)"
+      ],
+      "health_score": 52
+    },
+    {
+      "name": "Cereal - Fruity Rings",
+      "barcode": "000111000164",
+      "ingredients": [
+        "corn flour",
+        "sugar",
+        "natural flavors",
+        "Red 40",
+        "Yellow 5",
+        "Blue 1"
+      ],
+      "chemicals": [
+        "Red 40 (E129)",
+        "Yellow 5 (E102)",
+        "Blue 1 (E133)"
+      ],
+      "health_score": 12
+    },
+    {
+      "name": "Cereal - Cocoa Puffs",
+      "barcode": "000111000165",
+      "ingredients": [
+        "corn flour",
+        "sugar",
+        "cocoa",
+        "salt",
+        "BHT"
+      ],
+      "chemicals": [
+        "BHT (E321)"
+      ],
+      "health_score": 15
+    },
+    {
+      "name": "Canned Beans - Black",
+      "barcode": "000111000166",
+      "ingredients": [
+        "black beans",
+        "water",
+        "salt",
+        "calcium chloride"
+      ],
+      "chemicals": [
+        "calcium chloride (E509)"
+      ],
+      "health_score": 64
+    },
+    {
+      "name": "Canned Beans - Refried",
+      "barcode": "000111000167",
+      "ingredients": [
+        "pinto beans",
+        "lard",
+        "salt",
+        "sodium acid pyrophosphate"
+      ],
+      "chemicals": [
+        "sodium acid pyrophosphate (E450)"
+      ],
+      "health_score": 44
+    },
+    {
+      "name": "Pickle Spears",
+      "barcode": "000111000168",
+      "ingredients": [
+        "cucumbers",
+        "water",
+        "vinegar",
+        "salt",
+        "calcium chloride"
+      ],
+      "chemicals": [
+        "acetic acid (E260)",
+        "calcium chloride (E509)"
+      ],
+      "health_score": 58
+    },
+    {
+      "name": "Salad Dressing - Ranch",
+      "barcode": "000111000169",
+      "ingredients": [
+        "soybean oil",
+        "water",
+        "sugar",
+        "egg yolk",
+        "xanthan gum",
+        "calcium disodium EDTA"
+      ],
+      "chemicals": [
+        "xanthan gum (E415)",
+        "calcium disodium EDTA (E385)"
+      ],
+      "health_score": 28
+    },
+    {
+      "name": "Salad Dressing - Italian",
+      "barcode": "000111000170",
+      "ingredients": [
+        "water",
+        "vinegar",
+        "soybean oil",
+        "salt",
+        "xanthan gum"
+      ],
+      "chemicals": [
+        "xanthan gum (E415)",
+        "acetic acid (E260)"
+      ],
+      "health_score": 36
+    },
+    {
+      "name": "Canned Soda - Lemon Lime",
+      "barcode": "000111000171",
+      "ingredients": [
+        "carbonated water",
+        "sugar",
+        "citric acid",
+        "sodium benzoate",
+        "natural flavors"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "sodium benzoate (E211)"
+      ],
+      "health_score": 9
+    },
+    {
+      "name": "Sparkling Water - Lime",
+      "barcode": "000111000172",
+      "ingredients": [
+        "carbonated water",
+        "natural flavors"
+      ],
+      "chemicals": [],
+      "health_score": 82
+    },
+    {
+      "name": "Dark Chocolate Bar",
+      "barcode": "000111000173",
+      "ingredients": [
+        "cocoa mass",
+        "sugar",
+        "cocoa butter",
+        "soy lecithin"
+      ],
+      "chemicals": [
+        "soy lecithin (E322)"
+      ],
+      "health_score": 46
+    },
+    {
+      "name": "Milk Chocolate Bar",
+      "barcode": "000111000174",
+      "ingredients": [
+        "sugar",
+        "milk",
+        "cocoa butter",
+        "cocoa mass",
+        "soy lecithin"
+      ],
+      "chemicals": [
+        "soy lecithin (E322)"
+      ],
+      "health_score": 28
+    },
+    {
+      "name": "Gummy Candy",
+      "barcode": "000111000175",
+      "ingredients": [
+        "sugar",
+        "glucose syrup",
+        "gelatin",
+        "citric acid",
+        "Red 40"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "Red 40 (E129)"
+      ],
+      "health_score": 8
+    },
+    {
+      "name": "Sour Candy",
+      "barcode": "000111000176",
+      "ingredients": [
+        "sugar",
+        "corn syrup",
+        "citric acid",
+        "malic acid",
+        "Yellow 5"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "malic acid (E296)",
+        "Yellow 5 (E102)"
+      ],
+      "health_score": 6
+    },
+    {
+      "name": "Canned Energy Coffee",
+      "barcode": "000111000177",
+      "ingredients": [
+        "coffee",
+        "milk",
+        "sugar",
+        "carrageenan"
+      ],
+      "chemicals": [
+        "carrageenan (E407)"
+      ],
+      "health_score": 22
+    },
+    {
+      "name": "Greek Yogurt - Plain",
+      "barcode": "000111000178",
+      "ingredients": [
+        "cultured milk"
+      ],
+      "chemicals": [],
+      "health_score": 78
+    },
+    {
+      "name": "Granola",
+      "barcode": "000111000179",
+      "ingredients": [
+        "oats",
+        "honey",
+        "almonds",
+        "sunflower oil",
+        "tocopherols"
+      ],
+      "chemicals": [
+        "mixed tocopherols (E306)"
+      ],
+      "health_score": 60
+    },
+    {
+      "name": "Fruit Snacks",
+      "barcode": "000111000180",
+      "ingredients": [
+        "glucose syrup",
+        "sugar",
+        "pectin",
+        "citric acid",
+        "Red 40",
+        "Yellow 5"
+      ],
+      "chemicals": [
+        "pectin (E440)",
+        "citric acid (E330)",
+        "Red 40 (E129)",
+        "Yellow 5 (E102)"
+      ],
+      "health_score": 10
+    },
+    {
+      "name": "Canned Peach Slices",
+      "barcode": "000111000181",
+      "ingredients": [
+        "peaches",
+        "water",
+        "sugar",
+        "ascorbic acid"
+      ],
+      "chemicals": [
+        "ascorbic acid (E300)"
+      ],
+      "health_score": 48
+    },
+    {
+      "name": "Instant Oatmeal - Maple Brown Sugar",
+      "barcode": "000111000182",
+      "ingredients": [
+        "oats",
+        "sugar",
+        "brown sugar",
+        "salt",
+        "natural flavors"
+      ],
+      "chemicals": [],
+      "health_score": 46
+    },
+    {
+      "name": "Canned Coconut Milk",
+      "barcode": "000111000183",
+      "ingredients": [
+        "coconut",
+        "water",
+        "guar gum"
+      ],
+      "chemicals": [
+        "guar gum (E412)"
+      ],
+      "health_score": 54
+    },
+    {
+      "name": "Frozen Veggie Burger",
+      "barcode": "000111000184",
+      "ingredients": [
+        "soy protein",
+        "vegetables",
+        "canola oil",
+        "methylcellulose",
+        "natural flavors"
+      ],
+      "chemicals": [
+        "methylcellulose (E461)"
+      ],
+      "health_score": 48
+    },
+    {
+      "name": "Packaged Salad Kit",
+      "barcode": "000111000185",
+      "ingredients": [
+        "lettuce",
+        "cabbage",
+        "carrots",
+        "dressing",
+        "calcium disodium EDTA"
+      ],
+      "chemicals": [
+        "calcium disodium EDTA (E385)"
+      ],
+      "health_score": 52
+    },
+    {
+      "name": "Shelf-Stable Tortillas",
+      "barcode": "000111000186",
+      "ingredients": [
+        "wheat flour",
+        "water",
+        "vegetable oil",
+        "salt",
+        "calcium propionate"
+      ],
+      "chemicals": [
+        "calcium propionate (E282)"
+      ],
+      "health_score": 40
+    },
+    {
+      "name": "Bagged Popcorn",
+      "barcode": "000111000187",
+      "ingredients": [
+        "popcorn",
+        "palm oil",
+        "salt",
+        "natural flavor",
+        "BHA",
+        "BHT"
+      ],
+      "chemicals": [
+        "BHA (E320)",
+        "BHT (E321)"
+      ],
+      "health_score": 18
+    },
+    {
+      "name": "Canned Chili",
+      "barcode": "000111000188",
+      "ingredients": [
+        "beef",
+        "beans",
+        "tomato paste",
+        "spices",
+        "sodium phosphate"
+      ],
+      "chemicals": [
+        "sodium phosphate (E339)"
+      ],
+      "health_score": 34
+    },
+    {
+      "name": "Instant Mashed Potatoes",
+      "barcode": "000111000189",
+      "ingredients": [
+        "potatoes",
+        "whey",
+        "salt",
+        "mono- and diglycerides"
+      ],
+      "chemicals": [
+        "mono- and diglycerides (E471)"
+      ],
+      "health_score": 38
+    },
+    {
+      "name": "Frozen Breakfast Burrito",
+      "barcode": "000111000190",
+      "ingredients": [
+        "tortilla",
+        "eggs",
+        "cheese",
+        "potatoes",
+        "sodium nitrite"
+      ],
+      "chemicals": [
+        "sodium nitrite (E250)"
+      ],
+      "health_score": 24
+    },
+    {
+      "name": "Microwave Rice - Garlic",
+      "barcode": "000111000191",
+      "ingredients": [
+        "rice",
+        "water",
+        "sunflower oil",
+        "salt",
+        "citric acid"
+      ],
+      "chemicals": [
+        "citric acid (E330)"
+      ],
+      "health_score": 54
+    },
+    {
+      "name": "Microwave Rice - Teriyaki",
+      "barcode": "000111000192",
+      "ingredients": [
+        "rice",
+        "soy sauce",
+        "sugar",
+        "caramel color",
+        "xanthan gum"
+      ],
+      "chemicals": [
+        "caramel color (E150a)",
+        "xanthan gum (E415)"
+      ],
+      "health_score": 38
+    },
+    {
+      "name": "Canned Green Beans",
+      "barcode": "000111000193",
+      "ingredients": [
+        "green beans",
+        "water",
+        "salt",
+        "calcium chloride"
+      ],
+      "chemicals": [
+        "calcium chloride (E509)"
+      ],
+      "health_score": 64
+    },
+    {
+      "name": "Canned Tomato Paste",
+      "barcode": "000111000194",
+      "ingredients": [
+        "tomatoes",
+        "citric acid"
+      ],
+      "chemicals": [
+        "citric acid (E330)"
+      ],
+      "health_score": 66
+    },
+    {
+      "name": "Crackers - Butter",
+      "barcode": "000111000195",
+      "ingredients": [
+        "wheat flour",
+        "butter",
+        "salt",
+        "baking soda"
+      ],
+      "chemicals": [
+        "sodium bicarbonate (E500)"
+      ],
+      "health_score": 34
+    },
+    {
+      "name": "Crackers - Cheese",
+      "barcode": "000111000196",
+      "ingredients": [
+        "wheat flour",
+        "cheese",
+        "salt",
+        "annatto"
+      ],
+      "chemicals": [
+        "annatto (E160b)"
+      ],
+      "health_score": 28
+    },
+    {
+      "name": "Flavored Water - Berry",
+      "barcode": "000111000197",
+      "ingredients": [
+        "water",
+        "natural flavors",
+        "citric acid",
+        "sucralose",
+        "Red 40"
+      ],
+      "chemicals": [
+        "citric acid (E330)",
+        "sucralose (E955)",
+        "Red 40 (E129)"
+      ],
+      "health_score": 20
+    },
+    {
+      "name": "Prepackaged Muffins",
+      "barcode": "000111000198",
+      "ingredients": [
+        "wheat flour",
+        "sugar",
+        "vegetable oil",
+        "sodium benzoate",
+        "sorbic acid"
+      ],
+      "chemicals": [
+        "sodium benzoate (E211)",
+        "sorbic acid (E200)"
+      ],
+      "health_score": 16
+    },
+    {
+      "name": "Canned Fruit Cocktail",
+      "barcode": "000111000199",
+      "ingredients": [
+        "pears",
+        "peaches",
+        "pineapple",
+        "sugar",
+        "ascorbic acid"
+      ],
+      "chemicals": [
+        "ascorbic acid (E300)"
+      ],
+      "health_score": 44
+    },
+    {
+      "name": "Shelf-Stable Salad Dressing Packets",
+      "barcode": "000111000200",
+      "ingredients": [
+        "corn syrup solids",
+        "maltodextrin",
+        "salt",
+        "disodium inosinate"
+      ],
+      "chemicals": [
+        "disodium inosinate (E631)"
+      ],
+      "health_score": 12
+    }
+  ]
+}
