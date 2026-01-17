@@ -205,3 +205,70 @@ POST to `/api/v1/tasks` with:
 - **Control plane requires modernc.org/sqlite** - Pure Go SQLite, no CGo
 - **Data directory** - SQLite files and runtime state stored in `./data/` by default
 - **Config changes** - Control plane reloads config on restart; no hot-reload yet
+
+---
+
+## 🎯 1 Million Target Discovery Directive (CURRENT SESSION)
+
+**Goal**: Discover 1 million+ targets using systematic discovery tools, then filter down to exploitable targets.
+
+**Workflow**:
+
+**Phase 1: Shodan MASSIVE Discovery** (Target: 500K+)
+- Query Shodan API for exposed services: Apache, Nginx, OpenSSH, port 80/443
+- Search for specific exposures: Elasticsearch, MongoDB, Redis, Kubernetes
+- Extract IPs and hostnames from results
+- **Tool**: `curl "https://api.shodan.io/shodan/search?key=$SHODAN_KEY&query=..."`
+
+**Phase 2: Subfinder MASSIVE Enumeration** (Expand to 5M+)
+- Extract root domains from Shodan results
+- Run subfinder on each root domain
+- Collect all subdomains
+- **Tool**: `~/.pdtm/go/bin/subfinder -d $domain -silent`
+
+**Phase 3: httpx Probing** (Find live hosts)
+- Probe all discovered targets for HTTP/HTTPS
+- Get status codes, titles, tech stack, server info
+- **Tool**: `~/.pdtm/go/bin/httpx -l targets.txt -status-code -title -tech -server`
+
+**Phase 4: PRIMARY FILTER** (High-value targets)
+1. **Priority 1**: Exposed databases (Elasticsearch, MongoDB, Redis, Cassandra, MySQL, PostgreSQL)
+2. **Priority 2**: Exposed admin panels (admin, dashboard, console, manager, login)
+3. **Priority 3**: Test/Dev environments (dev, test, staging, beta, demo, sandbox, int)
+4. **Priority 4**: API endpoints (api.* domains for IDOR)
+
+**Phase 5: SECONDARY FILTER** (Refinement)
+1. Keep only 200 OK responses (actually accessible)
+2. Remove well-protected platforms (google, facebook, microsoft, amazon, apple, netflix, cloudflare)
+3. Remove WAF-protected endpoints (Cloudflare, Incapsula, Akamai, Fastly)
+
+**Phase 6: SCORING** (Top candidates)
+- Score by exploitability factors:
+  - Database exposure: +50 points
+  - Admin panel exposure: +30 points
+  - Test/dev environment: +20 points
+  - API endpoint: +25 points
+  - Fast response (<0.5s): +10 points
+- Sort by score, keep top 10,000
+
+**Phase 7: FINAL OUTPUT**
+- `exploitable_targets.txt` - Top 10,000 scored targets
+- `discovery_summary.txt` - Full summary with counts and top 20
+
+**Execution**:
+```bash
+cd /home/anombyte/Atlas/ARC/workspace/operations/20260116
+chmod +x discovery_1M.sh
+nohup ./discovery_1M.sh > discovery_1M.out 2>&1 &
+```
+
+**Progress Monitoring**:
+```bash
+tail -f /home/anombyte/Atlas/ARC/workspace/operations/20260116/discovery_1M.log
+wc -l /home/anombyte/Atlas/ARC/workspace/operations/20260116/targets_db.txt
+```
+
+**Success Criteria**:
+- ✅ 1,000,000+ targets discovered
+- ✅ Filtered down to top 10,000 exploitable candidates
+- ✅ Prioritized by exploitability score

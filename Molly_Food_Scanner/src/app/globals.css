@@ -67,3 +67,198 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* =====================================================
+   STARLIGHT-INSPIRED DESIGN TOKENS
+   ===================================================== */
+
+@layer base {
+  :root {
+    /* Typography Scale - Apple-Inspired Precision */
+    --text-xs: 0.75rem;      /* 12px */
+    --text-sm: 0.875rem;     /* 14px */
+    --text-base: 1rem;         /* 16px */
+    --text-lg: 1.125rem;        /* 18px */
+    --text-xl: 1.25rem;        /* 20px */
+    --text-2xl: 1.5rem;         /* 24px */
+    --text-3xl: 1.875rem;       /* 30px */
+    --text-4xl: 2.25rem;        /* 36px */
+
+    /* Letter Spacing */
+    --tracking-tight: -0.022em;
+    --text-tight: -0.009em;
+
+    /* Line Height */
+    --leading-tight: 1.6;
+
+    /* Font Families */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+
+    /* Animation Curves - Apple-Style */
+    --ease-in-out: cubic-bezier(0.2, 0.8);
+    --spring: cubic-bezier(0.175, 0.885, 0.32);
+    --spring-soft: cubic-bezier(0.4, 0.0, 0.2, 1.5, 1);
+  }
+}
+
+/* =====================================================
+   STARLIGHT COLOR PALETTE (DARK MODE ONLY)
+   ===================================================== */
+
+@layer base {
+  .dark {
+    /* Primary Background - Deep Black */
+    --background-primary: #0d0d0d;
+    --background-secondary: #1a1a1a;
+    --background-tertiary: #141414;
+
+    /* Text Colors */
+    --text-primary: #f5f5f5;
+    --text-secondary: #a1a1a6;
+    --text-muted: #717171;
+    --text-disabled: #323232;
+
+    /* Accent Colors - Starlight */
+    --accent-blue: #0a84ea;
+    --accent-purple: #8b5cf8;
+    --accent-green: #10b981;
+    --accent-yellow: #ff9500;
+    --accent-red: #ff3b30;
+
+    /* Semantic Colors */
+    --color-primary: #f5f5f5;
+    --color-secondary: #a1a1a6;
+    --color-tertiary: #6e6e6e;
+    --color-destructive: #8a153f;
+
+    /* Component Backgrounds */
+    --card: #0a0a0a;
+    --popover: #141414;
+    --overlay: rgba(0, 0, 0, 0.5);
+
+    /* Border - Subtle in Starlight */
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+
+    /* Shallow depth - Glassmorphism */
+    --glass-bg: rgba(10, 10, 10, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.1);
+
+    /* Spacing - Breathing room */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 2.5rem;
+
+    /* Animation Keyframes */
+    @keyframes fade-in {
+      0% { opacity: 0; transform: 0.4px 2px 0px 0 rgba(0, 0, 0); }
+      100% { opacity: 1; transform: 0.4px 2px 0px 0 rgba(0, 0, 0); }
+    }
+
+    @keyframes slide-in {
+      0% { opacity: 0; transform: -0.8rem 0; }
+      100% { opacity: 1; transform:0rem 0; }
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0%; }
+      50% { background-position: 100%; }
+    }
+
+    @keyframes float-in {
+      0%, 100% { transform: translateY(-20px) scale(0.9); }
+      100% { transform: translateY(0) scale(1); }
+    }
+  }
+}
+
+/* =====================================================
+   LIGHT MODE (For completeness)
+   ===================================================== */
+
+@layer base {
+  .light {
+    /* Primary Background - Clean White */
+    --background-primary: #ffffff;
+    --background-secondary: #f5f5f7;
+    --background-tertiary: #e5e5e5;
+
+    /* Text Colors */
+    --text-primary: #1d1d1f;
+    --text-secondary: #6b6b6b;
+    --text-muted: #717171;
+    --text-disabled: #c3c3c3;
+
+    /* Accent Colors - Apple Style */
+    --accent-blue: #0a84ea;
+    --accent-purple: #8b5cf8;
+    --accent-green: #10b981;
+    --accent-yellow: #ff9500;
+    --accent-red: #ff3b30;
+
+    /* Semantic Colors */
+    --color-primary: #1d1d1f;
+    --color-secondary: #6b6b6b;
+    --color-tertiary: #e5e5e5;
+    --color-destructive: #8a153f;
+
+    /* Component Backgrounds */
+    --card: #ffffff;
+    --popover: #f5f5f7;
+    --overlay: rgba(0, 0, 0, 0.8);
+
+    /* Border - Subtle */
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.12);
+
+    /* Shallow depth - Glassmorphism */
+    --glass-bg: rgba(0, 0, 0, 0.05);
+    --glass-border: rgba(0, 0, 0, 0.03);
+
+    /* Spacing - Breathing room */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 2.5rem;
+
+    /* Animation Keyframes */
+    @keyframes fade-in {
+      0% { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slide-in {
+      0% { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0%; }
+      50% { background-position: 100%; }
+    }
+
+    @keyframes float-in {
+      0%, 100% { transform: translateY(-20px) scale(0.9); }
+      100% { transform: translateY(0) scale(1); }
+    }
+  }
+}
+
+/* =====================================================
+   GLOBAL ANIMATIONS
+   ===================================================== */
+
+@keyframes shimmer {
+  0%, 100% { background-position: -100% 0%; }
+  50% { background-position: 100% 0%; }
+}
+
+@keyframes float-in {
+  0% { opacity:0; transform: translateY(-20px) scale(0.9); }
+  100% { opacity:1; transform: translateY(0) scale(1); }
+}

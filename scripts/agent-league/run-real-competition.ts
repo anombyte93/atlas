@@ -146,7 +146,9 @@ class RealChampionshipManager extends ChampionshipManager {
     seasonManager: SeasonManager,
     eventBus: EventBus
   ) {
-    super(registry, seasonManager, eventBus, logger);
+    super(registry, seasonManager, eventBus, logger, (agentId, bountyId, image, env) =>
+      execService.executeAgent(agentId, bountyId, process.cwd(), { image, env })
+    );
   }
 
   async executeRound(season: SeasonData): Promise<void> {

@@ -5,14 +5,11 @@ import ConsoleLogger from "../events/ConsoleLogger";
 import EventBus from "../events/EventBus";
 import AgentRegistry from "./AgentRegistry";
 import AnalyticsService from "./AnalyticsService";
+import AgentExecutionService, { ExecutionResult } from "./AgentExecutionService";
 import ChampionshipManager from "./ChampionshipManager";
+import { ChallengeSource, LocalChallengeSource } from "./ChallengeSource";
 import SeasonManager from "./SeasonManager";
-import {
-  AgentProfile,
-  AgentStats,
-  SeasonConfig,
-  SolverStrategy,
-} from "./types";
+import { AgentProfile, SeasonConfig, SolverStrategy } from "./types";
 
 type Strategy = "aggressive" | "conservative" | "balanced";
 
@@ -20,9 +17,9 @@ const STRATEGIES: Strategy[] = ["aggressive", "conservative", "balanced"];
 const DESIRED_AGENT_COUNT = 10;
 const LEAGUES_TO_RUN = 10;
 
-const SEASON_CONFIG: SeasonConfig = {
+const BASE_SEASON_CONFIG: SeasonConfig = {
   roundsPerSeason: 20,
-  challengeCount: 10,
+  challengeCount: 0,
   eliminationCount: 2,
   promotionCount: 3,
 };
@@ -33,21 +30,37 @@ const logger = new ConsoleLogger(true);
 const eventBus = new EventBus(logger);
 const registry = new AgentRegistry(eventBus, logger);
 const seasonManager = new SeasonManager(logger);
-const championshipManager = new ChampionshipManager(registry, seasonManager, eventBus, logger);
 const analytics = new AnalyticsService();
+const executor = new AgentExecutionService(eventBus, logger);
+const challengeSource: ChallengeSource = new LocalChallengeSource(
+  path.resolve(process.cwd(), "data/challenges")
+);
 
 let nextAgentIndex = 11;
 
-const randomChoice = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
+const executeAgent = async (
+  agentId: string,
+  bountyId: string,
+  image: string,
+  env: Record<string, string | number | undefined>
+): Promise<ExecutionResult> =>
+  executor.executeAgent(agentId, bountyId, process.cwd(), {
+    image,
+    env,
+  });
 
-const randomInt = (min: number, max: number): number =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-const clamp = (value: number, min: number, max: number): number =>
-  Math.min(Math.max(value, min), max);
+const championshipManager = new ChampionshipManager(
+  registry,
+  seasonManager,
+  eventBus,
+  logger,
+  executeAgent
+);
 
 function createAgent(id: string): AgentProfile {
-  const strategy = randomChoice(STRATEGIES) as SolverStrategy;
+  const suffix = Number(id.split("-").pop());
+  const strategyIndex = Number.isFinite(suffix) ? (suffix - 1) % STRATEGIES.length : 0;
+  const strategy = STRATEGIES[strategyIndex] as SolverStrategy;
   return {
     id,
     strategy,
@@ -67,46 +80,6 @@ function seedInitialAgents(): void {
   for (let i = 1; i <= DESIRED_AGENT_COUNT; i += 1) {
     registry.registerAgent(createAgent(`agent-${i}`));
   }
-}
-
-function simulateSeasonStats(strategy: Strategy, seasonNumber: number): AgentStats {
-  const momentum = Math.floor(seasonNumber / 3); // small lift as seasons progress
-
-  const strategyProfile = {
-    aggressive: { wins: [8, 16], losses: [4, 10], draws: [0, 3], accuracy: [0.55, 0.8] },
-    conservative: { wins: [6, 13], losses: [2, 8], draws: [1, 6], accuracy: [0.65, 0.92] },
-    balanced: { wins: [7, 14], losses: [3, 9], draws: [0, 4], accuracy: [0.6, 0.86] },
-  } as const;
-
-  const profile = strategyProfile[strategy];
-  const wins = clamp(randomInt(profile.wins[0], profile.wins[1]) + momentum, 0, 20);
-  const losses = clamp(randomInt(profile.losses[0], profile.losses[1]), 0, 20 - wins);
-  const draws = clamp(randomInt(profile.draws[0], profile.draws[1]), 0, 20 - wins - losses);
-  const score = wins * 3 + draws - losses;
-  const accuracy = Number(
-    (
-      profile.accuracy[0] +
-      Math.random() * (profile.accuracy[1] - profile.accuracy[0]) +
-      momentum * 0.01
-    ).toFixed(3)
-  );
-
-  return {
-    wins,
-    losses,
-    draws,
-    score,
-    accuracy,
-    totalChallenges: 0,
-    averageResponseTimeMs: randomInt(180, 1200),
-  };
-}
-
-function seedSeasonPerformance(seasonNumber: number): void {
-  registry.getAllAgents().forEach((agent) => {
-    const stats = simulateSeasonStats(agent.strategy as Strategy, seasonNumber);
-    registry.updateAgentStats(agent.id, stats);
-  });
 }
 
 function syncSeasonStatsToRegistry(seasonAgents: AgentProfile[]): void {
@@ -143,7 +116,8 @@ async function exportChampions(topAgents: AgentProfile[], seasonNumber: number):
 
 async function writeSummaryReport(
   seasonResults: ReturnType<typeof analytics.generateSeasonReport>[],
-  topAgents: AgentProfile[]
+  topAgents: AgentProfile[],
+  seasonConfig: SeasonConfig
 ): Promise<string> {
   await fs.mkdir(championsDir, { recursive: true });
   const summaryPath = path.join(championsDir, "agent-league-summary.json");
@@ -151,7 +125,7 @@ async function writeSummaryReport(
   const payload = {
     generatedAt: new Date().toISOString(),
     seasonsRun: seasonResults.length,
-    seasonConfig: SEASON_CONFIG,
+    seasonConfig,
     seasons: seasonResults.map((report) => ({
       seasonNumber: report.season.seasonNumber,
       participants: report.season.participants.length,
@@ -174,12 +148,16 @@ async function run(): Promise<void> {
   logger.info("Starting agent-league series simulation...");
   seedInitialAgents();
 
+  const challenges = await challengeSource.getChallenges();
+  const seasonConfig: SeasonConfig = {
+    ...BASE_SEASON_CONFIG,
+    challengeCount: challenges.length,
+  };
+
   const seasonReports: ReturnType<typeof analytics.generateSeasonReport>[] = [];
 
   for (let seasonIndex = 1; seasonIndex <= LEAGUES_TO_RUN; seasonIndex += 1) {
-    seedSeasonPerformance(seasonIndex);
-
-    const result = await championshipManager.runSeason(SEASON_CONFIG);
+    const result = await championshipManager.runSeason(seasonConfig);
 
     syncSeasonStatsToRegistry(result.season.participants);
 
@@ -203,7 +181,7 @@ async function run(): Promise<void> {
   });
 
   const championsPath = await exportChampions(topAgents, finalReport.season.seasonNumber);
-  const summaryPath = await writeSummaryReport(seasonReports, topAgents);
+  const summaryPath = await writeSummaryReport(seasonReports, topAgents, seasonConfig);
 
   logger.info("Top 3 agents exported", { path: championsPath });
   logger.info("Summary report generated", { path: summaryPath });

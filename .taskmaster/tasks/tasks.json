@@ -2,880 +2,101 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
-        "title": "Clarify Atlas OS implementation choices and workflow constraints",
-        "description": "Capture decisions on language/runtime for node agent and control plane, log storage backend, and minimum device support to align the build workflow with the PRD's phased plan.",
-        "details": "Document decisions for: node agent language (Go/Python), control plane hosting model, logging storage (JSONL vs DB), minimum OS targets, and initial device roles. Record in a short decisions doc under atlas/docs or root-level notes.",
-        "testStrategy": "Acceptance: decisions recorded and referenced by subsequent tasks.",
+        "id": 13,
+        "title": "Create Export Package with All Components",
+        "description": "Package the port-aware workflow components into a distributable tarball with installation scripts and documentation.",
+        "details": "Create a comprehensive export package containing:\n\n**Package Structure:**\n```bash\nport-aware-workflow/\n├── hooks/\n│   └── auto-port-allocator.sh (mode 755)\n├── commands/\n│   └── port-aware-service.md\n├── skills/\n│   └── port-aware-service/\n│       └── skill.md\n├── scripts/\n│   └── install.sh (mode 755)\n├── INSTALL.md\n├── README.md\n├── LICENSE\n└── port-aware-workflow.tar.gz.sha256\n```\n\n**Installation Script (`install.sh`):**\n```bash\n#!/bin/bash\nset -euo pipefail\n\n# Dependency checks\ncommand -v jq >/dev/null 2>&1 || { echo \"jq required\"; exit 1; }\ncommand -v mcp-cli >/dev/null 2>&1 || { echo \"MCP router required\"; exit 1; }\n\n# Create directories\nmkdir -p ~/.claude/hooks ~/.claude/commands ~/.claude/skills\nmkdir -p ~/.claude/var/run ~/.claude/var/log\n\n# Install files\ncp hooks/auto-port-allocator.sh ~/.claude/hooks/\ncp commands/port-aware-service.md ~/.claude/commands/\ncp -r skills/port-aware-service ~/.claude/skills/\n\n# Register hook\nif grep -q 'auto-port-allocator' ~/.claude/hooks.json 2>/dev/null; then\n  echo \"Hook already registered\"\nelse\n  tmp=$(mktemp)\n  jq '.hooks.UserPromptSubmit += [\"auto-port-allocator.sh\"]' ~/.claude/hooks.json > \"$tmp\"\n  mv \"$tmp\" ~/.claude/hooks.json\nfi\n\necho \"Installation complete\"\n```\n\n**Tarball Creation:**\n```bash\ncd /home/anombyte/Atlas\ntar -czf port-aware-workflow.tar.gz \\\n  -C ~/.claude hooks/auto-port-allocator.sh \\\n  -C ~/.claude commands/port-aware-service.md \\\n  -C ~/.claude skills/port-aware-service \\\n  INSTALL.md README.md LICENSE\n\nsha256sum port-aware-workflow.tar.gz > port-aware-workflow.tar.gz.sha256\n```\n\n**Dependencies:** tar, gzip, sha256sum, jq",
+        "testStrategy": "1. Verify tarball creation: tar -tzf port-aware-workflow.tar.gz | grep -E '(hooks|commands|skills|INSTALL|README)'\n2. Test SHA256 checksum: sha256sum -c port-aware-workflow.tar.gz.sha256\n3. Extract to temp directory and verify structure\n4. Run install.sh with --dry-run flag if available\n5. Verify file permissions: hooks script must be executable (755)",
         "priority": "high",
         "dependencies": [],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Research and document node agent language options",
-            "description": "Analyze and document trade-offs between Go and Python for the Atlas node agent, focusing on cross-platform support (Linux, macOS, Windows), resource efficiency (memory footprint, CPU usage), cold start time, binary distribution, ecosystem maturity for system monitoring/task execution, and development velocity. Consider implications for the AI logging wrapper (Task 7) and task execution API (Task 6).",
-            "dependencies": [],
-            "details": "Details: Analyze and document trade-offs between Go and Python for the Atlas node agent, focusing on cross-platform support (Linux, macOS, Windows), resource efficiency (memory footprint, CPU usage), cold start time, binary distribution, ecosystem maturity for system monitoring/task execution, and development velocity. Consider implications for the AI logging wrapper (Task 7) and task execution API (Task 6).",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Define control plane hosting model architecture",
-            "description": "Specify the control plane architecture pattern, including hosting model (self-hosted vs cloud-optional), scaling approach (single-master vs HA), service discovery mechanism for multi-device federation (Task 10), and API surface (REST/gRPC). Address whether control plane runs on one designated device or separately.",
-            "dependencies": [],
-            "details": "Details: Specify the control plane architecture pattern, including hosting model (self-hosted vs cloud-optional), scaling approach (single-master vs HA), service discovery mechanism for multi-device federation (Task 10), and API surface (REST/gRPC). Address whether control plane runs on one designated device or separately.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Specify logging storage backend decision matrix",
-            "description": "Evaluate and document the logging storage backend choice between JSONL files and database solutions (SQLite, PostgreSQL, time-series DB) for AI interaction logs. Analyze write performance, query capabilities, storage growth projections, backup/sync complexity across devices, and maintenance overhead. Consider both single-device and federated scenarios (Task 10).",
-            "dependencies": [],
-            "details": "Details: Evaluate and document the logging storage backend choice between JSONL files and database solutions (SQLite, PostgreSQL, time-series DB) for AI interaction logs. Analyze write performance, query capabilities, storage growth projections, backup/sync complexity across devices, and maintenance overhead. Consider both single-device and federated scenarios (Task 10).",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Define minimum device support matrix and initial device role taxonomy",
-            "description": "Document minimum OS/platform targets for Phase 1 (Linux distros, macOS versions, Windows support level) and define initial device role taxonomy (primary/secondary, compute/storage, agent host types). Specify bootstrap requirements and capability tag schema for task routing (Task 6).",
-            "dependencies": [],
-            "details": "Details: Document minimum OS/platform targets for Phase 1 (Linux distros, macOS versions, Windows support level) and define initial device role taxonomy (primary/secondary, compute/storage, agent host types). Specify bootstrap requirements and capability tag schema for task routing (Task 6).",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 3,
-        "recommendedSubtasks": 4,
-        "expansionPrompt": "Break down into: 1) Research and document node agent language options (Go vs Python trade-offs for cross-platform support, resource efficiency, and ecosystem), 2) Define control plane hosting model architecture (centralized vs distributed, scaling considerations), 3) Specify logging storage backend decision matrix (JSONL vs database with performance/maintenance analysis), 4) Define minimum device support matrix and initial device role taxonomy",
-        "updatedAt": "2026-01-11T05:02:51.838Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "2",
-        "title": "Scaffold Atlas world repo structure and config schemas",
-        "description": "Create the initial world model directory layout and baseline configuration schemas defined in the PRD.",
-        "details": "Create atlas/config, atlas/agents, atlas/services, atlas/policies, atlas/logging, atlas/docs, atlas/logs. Add minimal schema files (YAML/JSON + Markdown) for devices, agents, services, policies, and logging events.",
-        "testStrategy": "Verify directory structure exists and schemas validate basic examples.",
+        "id": 14,
+        "title": "Write Comprehensive Installation Documentation",
+        "description": "Create detailed installation guides for both fresh installations and updates, including troubleshooting steps and dependency requirements.",
+        "details": "Create two documentation files:\n\n**INSTALL.md (Installation Guide):**\n```markdown\n# Port-Aware Workflow Installation\n\n## Prerequisites\n- Bash 4.0+\n- jq 1.6+\n- MCP router with get_available_port tool\n- Claude Code with hooks support\n\n## Quick Install\n```bash\ncurl -sSL https://raw.githubusercontent.com/.../install.sh | bash\n```\n\n## Manual Install\n1. Extract port-aware-workflow.tar.gz\n2. Run ./scripts/install.sh\n3. Restart Claude Code\n\n## Verify Installation\n```bash\n# Check hook is registered\ngrep auto-port-allocator ~/.claude/hooks.json\n\n# Test port allocation\n~/.claude/hooks/auto-port-allocator.sh --test\n```\n\n## Uninstall\n```bash\n~/.claude/hooks/auto-port-allocator.sh --uninstall\n```\n```\n\n**README.md (User Guide):**\n```markdown\n# Port-Aware Agent Workflow\n\nAutomatic port allocation for AI agent-spawned services.\n\n## How It Works\n1. Detects service startup commands (npm, python, uvicorn, etc.)\n2. Extracts port arguments\n3. Allocates available port via MCP router\n4. Rewrites command with allocated port\n5. Persists allocation to registry\n\n## Usage\n\n### Automatic (Recommended)\nThe hook runs automatically on every command.\n\n### Manual\n```bash/port-aware-service --command \"npm start\" --project myapp\n```\n\n## Configuration\nExport environment variables:\n- PORT_ALLOC_MIN=8000 - Port range start\n- PORT_ALLOC_MAX=9999 - Port range end\n- PORT_ALLOC_QUOTA=10 - Max ports per project\n\n## Troubleshooting\n\n**Port conflicts:**\n```bash\n# List allocations\ncat ~/.claude/var/run/port_allocations.csv\n\n# Release port\nmcp-cli call mcp-router/get_available_port '{\"action\": \"release\", \"port\": 8080}'\n```\n\n**Hook not running:**\n```bash\n# Verify hooks.json\njq '.hooks.UserPromptSubmit' ~/.claude/hooks.json\n\n# Check permissions\nls -la ~/.claude/hooks/auto-port-allocator.sh\n```\n```\n\n**Version:** Use semantic versioning (1.0.0 for initial release)\n**Changelog:** Include CHANGELOG.md with version history",
+        "testStrategy": "1. Follow INSTALL.md instructions on fresh test system\n2. Verify all prerequisite checks work correctly\n3. Test each installation method (quick install, manual install)\n4. Follow README.md examples and verify they work\n5. Test all troubleshooting steps with real issues\n6. Run documentation linter: markdownlint INSTALL.md README.md",
         "priority": "high",
         "dependencies": [
-          "1"
+          13
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Directory Structure & .gitignore",
-            "description": "Foundation setup",
-            "dependencies": [],
-            "details": "Details: Foundation setup",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Device Schema",
-            "description": "Capabilities, roles, metadata",
-            "dependencies": [],
-            "details": "Details: Capabilities, roles, metadata",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Agent Schema",
-            "description": "Permissions, resources, heartbeats",
-            "dependencies": [],
-            "details": "Details: Permissions, resources, heartbeats",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Service Schema",
-            "description": "Endpoints, dependencies, health checks",
-            "dependencies": [],
-            "details": "Details: Endpoints, dependencies, health checks",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Policy Schema",
-            "description": "Rules, constraints, scope, RBAC/ABAC",
-            "dependencies": [],
-            "details": "Details: Rules, constraints, scope, RBAC/ABAC",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 6,
-            "title": "Logging Event Schema",
-            "description": "World-state tracking, audit trails, JSONL compatibility",
-            "dependencies": [],
-            "details": "Details: World-state tracking, audit trails, JSONL compatibility",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 4,
-        "recommendedSubtasks": 6,
-        "expansionPrompt": "Expand into: 1) Create directory structure with proper permissions and .gitignore, 2) Define device schema (YAML/JSON) with required fields (id, capabilities, roles), 3) Define agent schema (config, permissions, resources), 4) Define service schema (endpoints, dependencies, health checks), 5) Define policy schema (rules, constraints, scope), 6) Create logging event schema with metadata fields for world-state tracking",
-        "updatedAt": "2026-01-11T11:51:53.775Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "3",
-        "title": "Bootstrap script for new devices",
-        "description": "Provide a minimal script to clone/apply the world repo and register a device with the control plane.",
-        "details": "Script should clone the repo, apply per-device overrides, and generate/register a device ID. Include usage docs in atlas/docs.",
-        "testStrategy": "Dry-run on a local folder shows expected output and config placement.",
-        "priority": "medium",
-        "dependencies": [
-          "2"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
-            "description": "Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
-            "dependencies": [],
-            "details": "Details: Sequential dependency chain: Each subtask builds on the previous—CLI design first, then implementation, ending with docs",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
-            "description": "Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
-            "dependencies": [],
-            "details": "Details: Parallelization opportunity: After 3.1 completes, subtasks 3.2-3.4 can run in parallel",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
-            "description": "Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
-            "dependencies": [],
-            "details": "Details: Integration points: Clear handoffs with Tasks 2, 4, 10, and 12 documented",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 5,
-        "expansionPrompt": "Break into: 1) Design script interface and CLI arguments (repo URL, device type, config overrides), 2) Implement repo clone and world repo initialization logic, 3) Build per-device config override system (template rendering or file merging), 4) Create device ID generation and registration logic with collision handling, 5) Add comprehensive usage documentation and error handling for common failure scenarios",
-        "updatedAt": "2026-01-11T11:51:57.496Z"
-      },
-      {
-        "id": "4",
-        "title": "Node agent skeleton (per-device daemon/CLI)",
-        "description": "Implement a minimal node agent capable of reading local config, identifying device capabilities, and exposing a basic interface to the control plane.",
-        "details": "Include device ID generation, capability discovery (OS/CPU/GPU), and a heartbeat loop. Keep filesystem roots read-only by default.",
-        "testStrategy": "Start agent locally and confirm it emits a heartbeat payload and capabilities snapshot.",
+        "id": 15,
+        "title": "Integrate with TaskMaster System",
+        "description": "Parse this PRD with TaskMaster MCP to generate tracked subtasks with AtlasCoin bounty contracts and evidence-based verification.",
+        "details": "Leverage TaskMaster MCP for comprehensive task tracking:\n\n**Step 1: Check MCP Schema**\n```bash\nmcp-cli info task-master-ai/parse_prd\nmcp-cli info task-master-ai/add_task\nmcp-cli info task-master-ai/set_task_status\n```\n\n**Step 2: Parse PRD**\n```bash\nmcp-cli call task-master-ai/parse_prd '{\n  \"prd_content\": \"$(cat port-aware-workflow-prd.md)\",\n  \"project_name\": \"port-aware-workflow\",\n  \"task_prefix\": \"PAW\"\n}'\n```\n\n**Step 3: Configure AtlasCoin Contracts**\nFor each generated task, create bounty contract:\n```json\n{\n  \"task_id\": \"PAW-13\",\n  \"bounty_amount\": 50,\n  \"verification_method\": \"evidence\",\n  \"evidence_requirements\": [\n    \"port-aware-workflow.tar.gz exists\",\n    \"Installation test passes on fresh system\",\n    \"SHA256 checksum verified\"\n  ],\n  \"validator\": \"karen\"\n}\n```\n\n**Step 4: Evidence Collection Points**\nDefine what evidence proves completion:\n- **Task 13**: Tarball file, SHA256 checksum, extraction test output\n- **Task 14**: INSTALL.md, README.md, installation test logs\n- **Task 15**: TaskMaster task IDs, contract creation confirmations\n- **Task 16**: Test suite output, coverage report\n- **Task 17**: CI workflow YAML, workflow run logs\n- **Task 18**: Release assets, GitHub page URL, installation stats\n- **Task 19**: Usage metrics JSON, performance benchmark results\n\n**Step 5: Link Completion Verification**\n```bash\nmcp-cli call task-master-ai/set_task_status '{\n  \"task_id\": \"PAW-13\",\n  \"status\": \"completed\",\n  \"evidence\": [\n    \"/path/to/port-aware-workflow.tar.gz\",\n    \"/path/to/sha256.sum\",\n    \"/path/to/test-output.txt\"\n  ]\n}'\n```\n\n**Dependencies:** task-master-ai MCP, AtlasCoin client",
+        "testStrategy": "1. Verify MCP tool responses with mcp-cli info calls\n2. Test PRD parsing with sample content first\n3. Verify task creation in TaskMaster system\n4. Confirm AtlasCoin contracts are valid format\n5. Test evidence submission workflow\n6. Verify Karen validator accepts evidence format",
         "priority": "high",
         "dependencies": [
-          "1",
-          "2"
+          13,
+          14
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Project Structure & Dependency Management",
-            "description": "Medium | 4-6",
-            "dependencies": [],
-            "details": "Details: Medium | 4-6",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Device ID Generation & Persistence",
-            "description": "Medium | 5-8",
-            "dependencies": [],
-            "details": "Details: Medium | 5-8",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Capability Discovery System",
-            "description": "High | 8-12",
-            "dependencies": [],
-            "details": "Details: High | 8-12",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Config Loading & Validation",
-            "description": "Medium | 5-7",
-            "dependencies": [],
-            "details": "Details: Medium | 5-7",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Heartbeat Loop Implementation",
-            "description": "High | 8-10",
-            "dependencies": [],
-            "details": "Details: High | 8-10",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 6,
-            "title": "Control Plane Communication Interface",
-            "description": "High | 7-10",
-            "dependencies": [],
-            "details": "Details: High | 7-10",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 7,
-            "title": "Read-Only Filesystem Enforcement",
-            "description": "Medium-High | 6-9",
-            "dependencies": [],
-            "details": "Details: Medium-High | 6-9",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 8,
-            "title": "Logging & Status Reporting",
-            "description": "Medium | 5-8",
-            "dependencies": [],
-            "details": "Details: Medium | 5-8",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 7,
-        "recommendedSubtasks": 8,
-        "expansionPrompt": "Expand into: 1) Set up project structure and dependency management for chosen language, 2) Implement device ID generation and persistence (file-based, collision-resistant), 3) Build capability discovery system (OS detection, CPU info, GPU detection via system APIs), 4) Create config loading and validation from world repo schemas, 5) Implement heartbeat loop with exponential backoff and error handling, 6) Build control plane communication interface (HTTP/gRPC client), 7) Add read-only filesystem enforcement logic, 8) Create comprehensive logging and status reporting",
-        "updatedAt": "2026-01-11T11:52:07.626Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "5",
-        "title": "Control plane registry service (single-node MVP)",
-        "description": "Create a minimal Atlas Core service that registers devices and exposes a registry API for discovery.",
-        "details": "Implement endpoints for register, heartbeat, list devices. Load config from world repo and support hot reload on change.",
-        "testStrategy": "Register a local node agent and list devices via CLI or curl.",
+        "id": 16,
+        "title": "Build Comprehensive Test Suite",
+        "description": "Create automated tests covering all components including hook execution, port allocation logic, MCP integration, and edge cases.",
+        "details": "Implement a Bats (Bash Automated Testing System) test suite:\n\n**Test Structure:**\n```bash\ntests/\n├── unit/\n│   ├── test_port_detection.bats\n│   ├── test_port_extraction.bats\n│   ├── test_mcp_integration.bats\n│   └── test_state_persistence.bats\n├── integration/\n│   ├── test_hook_execution.bats\n│   ├── test_concurrent_allocation.bats\n│   └── test_install_workflow.bats\n└── helpers/\n    ├── test_utils.bash\n    └── mock_mcp_server.sh\n```\n\n**Key Test Cases:**\n\n**1. Port Detection (unit/test_port_detection.bats):**\n```bash\n@test \"detect npm start command\" {\n  run detect_service \"npm start\"\n  [ \"$status\" -eq 0 ]\n  [ \"$output\" = \"npm\" ]\n}\n\n@test \"detect python -m uvicorn command\" {\n  run detect_service \"python -m uvicorn main:app\"\n  [ \"$status\" -eq 0 ]\n  [ \"$output\" = \"uvicorn\" ]\n}\n\n@test \"detect gradio command\" {\n  run detect_service \"python app.py --gradio\"\n  [ \"$status\" -eq 0 ]\n  [ \"$output\" = \"gradio\" ]\n}\n```\n\n**2. Port Extraction (unit/test_port_extraction.bats):**\n```bash\n@test \"extract port from --port 3000\" {\n  run extract_port \"npm start -- --port 3000\"\n  [ \"$output\" = \"3000\" ]\n}\n\n@test \"extract port from -p 8080\" {\n  run extract_port \"python app.py -p 8080\"\n  [ \"$output\" = \"8080\" ]\n}\n```\n\n**3. Concurrent Allocation (integration/test_concurrent_allocation.bats):**\n```bash\n@test \"allocate 100 ports concurrently without conflicts\" {\n  pids=()\n  for i in {1..100}; do\n    allocate_port_async \"test-$i\" &\n    pids+=($!)\n  done\n  wait \"${pids[@]}\"\n  \n  # Verify all unique\n  allocations=$(cat ~/.claude/var/run/port_allocations.csv)\n  unique_ports=$(echo \"$allocations\" | cut -d, -f2 | sort -u | wc -l)\n  [ \"$unique_ports\" -eq 100 ]\n}\n```\n\n**4. MCP Integration (unit/test_mcp_integration.bats):**\n```bash\n@test \"allocate port via MCP router\" {\n  run mcp-cli call mcp-router/get_available_port '{\n    \"action\": \"allocate\",\n    \"project\": \"test-project\"\n  }'\n  [ \"$status\" -eq 0 ]\n  echo \"$output\" | jq -e '.port >= 8000'\n}\n```\n\n**Test Runner:**\n```bash\n#!/bin/bash\n# run-tests.sh\nbats --formatter tap tests/unit/\nbats --formatter tap tests/integration/\n```\n\n**Dependencies:** Bats core, bash unit testing framework, jq",
+        "testStrategy": "1. Run unit tests: bats tests/unit/\n2. Run integration tests: bats tests/integration/\n3. Verify 100% of critical paths covered (port detection, extraction, allocation)\n4. Test on macOS and Linux for compatibility\n5. Run tests in isolated environment (Docker container)\n6. Verify mock MCP server responses match real MCP\n7. Check test execution time: suite should complete < 30 seconds",
         "priority": "high",
         "dependencies": [
-          "4"
+          13
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
-            "description": "5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
-            "dependencies": [],
-            "details": "Details: 5.1 - Design API Endpoints & Data Models (4-6h, medium complexity) - OpenAPI spec, device schema, endpoints",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
-            "description": "5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
-            "dependencies": [],
-            "details": "Details: 5.2 - Web Server Framework & Middleware (3-4h, medium) - HTTP server, logging, error handling, CORS",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
-            "description": "5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
-            "dependencies": [],
-            "details": "Details: 5.3 - In-Memory Registry with Thread Safety (5-7h, high) - Concurrent data structures, duplicate handling, health tracking",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
-            "description": "5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
-            "dependencies": [],
-            "details": "Details: 5.4 - Config Loading & Hot-Reload (4-6h, high) - YAML parsing, file watching, zero-downtime config updates",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
-            "description": "5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
-            "dependencies": [],
-            "details": "Details: 5.5 - Device Registration Logic (3-4h, medium) - Validation, duplicate detection, registration endpoint",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 6,
-            "title": "5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
-            "description": "5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
-            "dependencies": [],
-            "details": "Details: 5.6 - Heartbeat Processing & Health Tracking (4-5h, medium) - Background health jobs, state transitions, metrics",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 7,
-            "title": "5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
-            "description": "5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
-            "dependencies": [],
-            "details": "Details: 5.7 - Error Handling & Documentation (3-4h, medium) - OpenAPI/Swagger UI, markdown docs, integration tests",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 7,
-        "recommendedSubtasks": 7,
-        "expansionPrompt": "Break into: 1) Design API endpoints and data models (register, heartbeat, list devices, get device), 2) Set up web server framework and routing with middleware for logging/auth, 3) Implement in-memory registry with thread-safe operations, 4) Build config loading from world repo with hot-reload on file changes, 5) Create device registration logic with validation and duplicate handling, 6) Implement heartbeat processing and device health tracking, 7) Add comprehensive error handling and API documentation",
-        "updatedAt": "2026-01-11T11:52:11.283Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "6",
-        "title": "Task execution API (v1 minimal)",
-        "description": "Provide basic task routing and execution across nodes.",
-        "details": "Support run shell command and run script-from-repo. Scheduler chooses a node based on capability tags.",
-        "testStrategy": "Submit a task and confirm execution result on the selected node.",
+        "id": 17,
+        "title": "Create CI/CD Pipeline",
+        "description": "Establish GitHub Actions workflow for automated testing, linting, and release management.",
+        "details": "Create GitHub Actions workflow:\n\n**Workflow Structure:**\n```yaml\n# .github/workflows/test.yml\nname: Test Port-Aware Workflow\n\non:\n  push:\n    branches: [main, develop]\n  pull_request:\n    branches: [main]\n  workflow_dispatch:\n\njobs:\n  lint:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Install dependencies\n        run: |\n          sudo apt-get update\n          sudo apt-get install -y shellcheck bats jq\n      - name: Lint shell scripts\n        run: shellcheck hooks/auto-port-allocator.sh\n      - name: Check documentation\n        run: |\n          npm install -g markdownlint-cli\n          markdownlint '**/*.md'\n\n  test:\n    runs-on: ${{ matrix.os }}\n    strategy:\n      matrix:\n        os: [ubuntu-latest, macos-latest]\n    steps:\n      - uses: actions/checkout@v4\n      - name: Install Bats\n        run: |\n          git clone https://github.com/bats-core/bats-core.git\n          cd bats-core && ./install.sh\n      - name: Run tests\n        run: |\n          export PATH=\"$PATH:$HOME/.local/bin\"\n          bats tests/unit/ tests/integration/\n      - name: Upload coverage\n        uses: actions/upload-artifact@v4\n        with:\n          name: coverage-${{ matrix.os }}\n          path: coverage.html\n\n  security:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Run security scan\n        run: |\n          docker run --rm -v \"$PWD\":/app \\\n            securecodewarrior/docker-shellcheck:latest\n      - name: Check for secrets\n        uses: trufflesecurity/trufflehog@main\n        with:\n          path: ./\n\n  integration:\n    runs-on: ubuntu-latest\n    needs: [lint, test]\n    steps:\n      - uses: actions/checkout@v4\n      - name: Install MCP router\n        run: |\n          npm install -g @modelcontextprotocol/cli\n      - name: Test MCP integration\n        run: |\n          mcp-cli info mcp-router/get_available_port\n          ~/.claude/hooks/auto-port-allocator.sh --test\n```\n\n**Release Workflow:**\n```yaml\n# .github/workflows/release.yml\nname: Create Release\n\non:\n  push:\n    tags:\n      - 'v*'\n\npermissions:\n  contents: write\n\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Build package\n        run: |\n          tar -czf port-aware-workflow.tar.gz \\\n            hooks/ commands/ skills/ \\\n            INSTALL.md README.md LICENSE\n          sha256sum port-aware-workflow.tar.gz > checksums.txt\n      - name: Create GitHub Release\n        uses: softprops/action-gh-release@v1\n        with:\n          files: |\n            port-aware-workflow.tar.gz\n            checksums.txt\n          draft: false\n          prerelease: false\n```\n\n**Dependabot:**\n```yaml\n# .github/dependabot.yml\nversion: 2\nupdates:\n  - package-ecosystem: \"github-actions\"\n    directory: \"/\"\n    schedule:\n      interval: \"weekly\"\n```\n\n**Dependencies:** GitHub Actions, Bats, ShellCheck, markdownlint, TruffleHog",
+        "testStrategy": "1. Push to feature branch to trigger test workflow\n2. Verify all jobs pass: lint, test (Ubuntu), test (macOS), security\n3. Check workflow run time: should complete < 5 minutes\n4. Test manual workflow dispatch\n5. Create test tag (v0.0.0-test) to verify release workflow\n6. Confirm release assets uploaded correctly\n7. Verify Dependabot creates PRs for updates",
         "priority": "medium",
         "dependencies": [
-          "5"
+          16
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Task schema & state machine",
-            "description": "Foundation: defines task model and execution states | 2-4h",
-            "dependencies": [],
-            "details": "Details: Foundation: defines task model and execution states | 2-4h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Scheduler with tag matching",
-            "description": "Routes tasks to capable nodes via registry (Task 5) | 3-6h",
-            "dependencies": [],
-            "details": "Details: Routes tasks to capable nodes via registry (Task 5) | 3-6h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Queue & state persistence",
-            "description": "Buffers tasks and tracks lifecycle | 2-4h",
-            "dependencies": [],
-            "details": "Details: Buffers tasks and tracks lifecycle | 2-4h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Shell execution with timeout",
-            "description": "Safely executes commands with output capture | 3-5h",
-            "dependencies": [],
-            "details": "Details: Safely executes commands with output capture | 3-5h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Script fetching from repo",
-            "description": "Validates and executes repo-stored scripts | 3-5h",
-            "dependencies": [],
-            "details": "Details: Validates and executes repo-stored scripts | 3-5h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 6,
-            "title": "Result reporting & cleanup",
-            "description": "Collects results, reports via API, prunes old tasks | 4-6h",
-            "dependencies": [],
-            "details": "Details: Collects results, reports via API, prunes old tasks | 4-6h",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 6,
-        "recommendedSubtasks": 6,
-        "expansionPrompt": "Expand into: 1) Design task schema and execution flow (submitted → queued → running → completed/failed), 2) Implement basic scheduler with capability tag matching logic, 3) Create task queue and state management, 4) Build shell command execution with timeout and output capture, 5) Implement script-from-repo fetching and validation, 6) Add result reporting and error handling with proper cleanup",
-        "updatedAt": "2026-01-11T11:52:14.971Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "7",
-        "title": "AI logging wrapper with metadata capture",
-        "description": "Implement provider-agnostic logging wrapper capturing model, context refs, device, agent, and world-state identifiers.",
-        "details": "Define log schema in atlas/logging, add wrapper hooks for provider calls, and include context references.",
-        "testStrategy": "Trigger a sample AI call and verify log entry contains world_commit, branch, device_id, agent_id, tool, and context_refs.",
-        "priority": "high",
-        "dependencies": [
-          "2"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design Comprehensive Log Schema",
-            "description": "Define JSONL schema with model, context_refs, device_id, agent_id, world_commit, tokens, and extensibility",
-            "dependencies": [],
-            "details": "Details: Define JSONL schema with model, context_refs, device_id, agent_id, world_commit, tokens, and extensibility",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Create Provider-Agnostic Wrapper Interface",
-            "description": "Build adapter pattern for Claude, OpenAI, and generic providers",
-            "dependencies": [],
-            "details": "Details: Build adapter pattern for Claude, OpenAI, and generic providers",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Implement Context Capture at Call Time",
-            "description": "Auto-capture git state, device info, agent config with <10ms latency",
-            "dependencies": [],
-            "details": "Details: Auto-capture git state, device info, agent config with <10ms latency",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Add Middleware/Interceptor Pattern",
-            "description": "Decorator-based logging integration with single-line code changes",
-            "dependencies": [],
-            "details": "Details: Decorator-based logging integration with single-line code changes",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Create Unit Tests for Metadata Extraction",
-            "description": "Comprehensive test suite validating schema, adapters, context, and E2E scenarios",
-            "dependencies": [],
-            "details": "Details: Comprehensive test suite validating schema, adapters, context, and E2E scenarios",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 5,
-        "expansionPrompt": "Break into: 1) Design comprehensive log schema (model, context_refs, device_id, agent_id, world_commit, branch, timestamp, tokens, etc.), 2) Create provider-agnostic wrapper interface for common AI SDK patterns, 3) Implement context capture (git state, device info, agent config) at call time, 4) Add middleware/interceptor pattern for automatic logging with minimal code changes, 5) Create unit tests for metadata extraction and log formatting",
-        "updatedAt": "2026-01-11T11:52:18.670Z"
-      },
-      {
-        "id": "8",
-        "title": "Structured log storage (JSONL + query helpers)",
-        "description": "Persist AI logs in a queryable format and add simple CLI/query helpers.",
-        "details": "Store logs under atlas/logs as JSONL; add basic filter/search script for device/agent/time.",
-        "testStrategy": "Run a query for a known entry and confirm it returns expected log lines.",
+        "id": 18,
+        "title": "Publish Release and Documentation",
+        "description": "Create GitHub repository, publish release, and set up documentation site for public distribution.",
+        "details": "Complete public release setup:\n\n**1. Repository Initialization:**\n```bash\ncd /home/anombyte/Atlas\ngit init port-aware-workflow\ncd port-aware-workflow\ngit remote add origin git@github.com:anombyte/port-aware-workflow.git\n\n# Create proper structure\ncp ../port-aware-workflow.tar.gz .\ncp ../INSTALL.md ../README.md .\nmkdir -p hooks commands skills\ntar -xzf port-aware-workflow.tar.gz\n\n# Create LICENSE (MIT)\ncat > LICENSE << 'EOF'\nMIT License\n\nCopyright (c) 2026 anombyte\n\nPermission is hereby granted...\nEOF\n\n# Initial commit\ngit add -A\ngit commit -m \"Initial release: v1.0.0\"\n```\n\n**2. GitHub Repository Setup:**\n```bash\n# Create repo via GitHub CLI\ngh repo create port-aware-workflow \\\n  --public \\\n  --description \"Automatic port allocation for AI agent-spawned services\" \\\n  --source=. \\\n  --push\n\n# Add topics\ngh repo edit --add-topic automation,ai-agents,port-allocation,mcp\n```\n\n**3. GitHub Release:**\n```bash\n# Create annotated tag\ngit tag -a v1.0.0 -m \"Release v1.0.0\n\nFeatures:\n- Automatic port detection for npm, python, uvicorn, flask, django\n- Atomic port allocation via MCP router\n- Project-scoped persistence\n- Audit logging\n- Concurrent allocation support\n\nInstallation:\ncurl -sSL https://raw.githubusercontent.com/anombyte/port-aware-workflow/main/install.sh | bash\n\"\n\n# Push tag\ngit push origin v1.0.0\n\n# Create release with assets\ngh release create v1.0.0 \\\n  ./port-aware-workflow.tar.gz \\\n  ./checksums.txt \\\n  --notes \"$(cat RELEASE_NOTES.md)\"\n```\n\n**4. Documentation Site (GitHub Pages):**\n```bash\n# Create docs branch\ngit checkout -b gh-pages\n\n# Create simple site\ncat > index.html << 'EOF'\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Port-Aware Workflow</title>\n  <meta http-equiv=\"refresh\" content=\"0; url=https://github.com/anombyte/port-aware-workflow\">\n</head>\n<body>\n  <h1>Redirecting to GitHub...</h1>\n</body>\n</html>\nEOF\n\ngit commit -am \"Add GitHub Pages redirect\"\ngit push origin gh-pages\n\n# Enable Pages via GitHub API\ncurl -X POST \\\n  -H \"Authorization: token $GITHUB_TOKEN\" \\\n  -d '{\"source\":{\"branch\":\"gh-pages\"}}' \\\n  https://api.github.com/repos/anombyte/port-aware-workflow/pages\n```\n\n**5. PyPI/NPM Publishing (optional):**\n```bash\n# NPM package for Node.js integration\nnpm init -y\nnpm publish --access public\n\n# PyPI package for Python integration\npython -m build\ntwine upload dist/*\n```\n\n**6. README enhancements:**\n```markdown\n# Port-Aware Workflow\n\n[![Tests](https://github.com/anombyte/port-aware-workflow/actions/workflows/test.yml/badge.svg)](https://github.com/anombyte/port-aware-workflow/actions/workflows/test.yml)\n[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)\n\n## Quick Install\n\n```bash\ncurl -sSL https://raw.githubusercontent.com/anombyte/port-aware-workflow/main/install.sh | bash\n```\n\n[Full Documentation →](https://github.com/anombyte/port-aware-workflow/blob/main/README.md)\n```\n\n**Dependencies:** GitHub CLI, git, Node.js (for npm publishing), Python (for PyPI)",
+        "testStrategy": "1. Verify repository is accessible: curl -I https://github.com/anombyte/port-aware-workflow\n2. Test release download: wget https://github.com/anombyte/port-aware-workflow/releases/download/v1.0.0/port-aware-workflow.tar.gz\n3. Verify SHA256: sha256sum -c checksums.txt\n4. Test installation from release: curl -sSL https://raw.githubusercontent.com/anombyte/port-aware-workflow/main/install.sh | bash\n5. Check GitHub Pages is accessible\n6. Verify badges in README render correctly\n7. Test installation from fresh system using published instructions",
         "priority": "medium",
         "dependencies": [
-          "7"
+          15,
+          17
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design JSONL format & rotation strategy",
-            "description": "High | 2-3h | —",
-            "dependencies": [],
-            "details": "Details: High | 2-3h | —",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Implement append-only log writer with file locking",
-            "description": "High | 4-5h | 8.1",
-            "dependencies": [],
-            "details": "Details: High | 4-5h | 8.1",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Create query CLI with device/agent/time filters",
-            "description": "Medium | 3-4h | 8.2",
-            "dependencies": [],
-            "details": "Details: Medium | 3-4h | 8.2",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Add aggregation helpers (stats, latency, errors)",
-            "description": "Medium | 2-3h | 8.2",
-            "dependencies": [],
-            "details": "Details: Medium | 2-3h | 8.2",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 4,
-        "recommendedSubtasks": 4,
-        "expansionPrompt": "Expand into: 1) Design JSONL file format and rotation strategy (size/time-based), 2) Implement append-only log writer with proper file locking and atomic writes, 3) Create query CLI with filters (device, agent, time range, model), 4) Add basic aggregation helpers (count by agent, latency stats, error rates)",
-        "updatedAt": "2026-01-11T11:52:22.348Z"
+        "status": "pending",
+        "subtasks": []
       },
       {
-        "id": "9",
-        "title": "Atlas CLI commands for status, devices, logs",
-        "description": "Create a CLI interface for atlas init/status/devices/logs tail.",
-        "details": "Implement commands with clear output; integrate with control plane and logging store.",
-        "testStrategy": "Run `atlas status`, `atlas devices`, and `atlas logs tail` locally and verify output.",
-        "priority": "medium",
-        "dependencies": [
-          "5",
-          "8"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design CLI Framework & Command Structure",
-            "description": "Design CLI Framework & Command Structure",
-            "dependencies": [],
-            "details": "Details: Design CLI Framework & Command Structure",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Implement `atlas init` Bootstrap Command",
-            "description": "Implement `atlas init` Bootstrap Command",
-            "dependencies": [],
-            "details": "Details: Implement `atlas init` Bootstrap Command",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Implement `atlas status` Command",
-            "description": "Implement `atlas status` Command",
-            "dependencies": [],
-            "details": "Details: Implement `atlas status` Command",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Implement `atlas devices` Command with Filtering",
-            "description": "Implement `atlas devices` Command with Filtering",
-            "dependencies": [],
-            "details": "Details: Implement `atlas devices` Command with Filtering",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Implement `atlas logs tail` with Real-Time Streaming",
-            "description": "Implement `atlas logs tail` with Real-Time Streaming",
-            "dependencies": [],
-            "details": "Details: Implement `atlas logs tail` with Real-Time Streaming",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 6,
-            "title": "Add Help Text, Examples, and Shell Completion",
-            "description": "Add Help Text, Examples, and Shell Completion",
-            "dependencies": [],
-            "details": "Details: Add Help Text, Examples, and Shell Completion",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 6,
-        "expansionPrompt": "Break into: 1) Design CLI interface and command structure (using Cobra/clik or similar framework), 2) Implement 'atlas init' bootstrap command with interactive setup, 3) Create 'atlas status' showing registry health and device counts, 4) Build 'atlas devices' with filtering and detailed views, 5) Implement 'atlas logs tail' with real-time streaming and filters, 6) Add comprehensive help text, examples, and shell completion",
-        "updatedAt": "2026-01-11T11:52:26.080Z"
-      },
-      {
-        "id": "10",
-        "title": "Multi-device federation and config sync",
-        "description": "Enable a second device to join Atlas with config sync and capability registration.",
-        "details": "Use Git + optional chezmoi overlays for per-device config. Document bootstrap steps for a new node.",
-        "testStrategy": "Simulate a second device config and confirm it registers with control plane.",
-        "priority": "medium",
-        "dependencies": [
-          "3",
-          "5"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design per-device config overlay system",
-            "description": "High | Architecture decision (Git branches vs chezmoi vs custom overlays)",
-            "dependencies": [],
-            "details": "Details: High | Architecture decision (Git branches vs chezmoi vs custom overlays)",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Implement config sync mechanism",
-            "description": "High | Pull-based polling with conflict detection and eventual consistency",
-            "dependencies": [],
-            "details": "Details: High | Pull-based polling with conflict detection and eventual consistency",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Device registration with auto-discovery",
-            "description": "High | Capability detection, role assignment, auth token generation",
-            "dependencies": [],
-            "details": "Details: High | Capability detection, role assignment, auth token generation",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Conflict detection and resolution",
-            "description": "Medium | Handle concurrent writes, audit trails, LWW strategy",
-            "dependencies": [],
-            "details": "Details: Medium | Handle concurrent writes, audit trails, LWW strategy",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Multi-device setup docs & troubleshooting",
-            "description": "Medium | User walkthrough, diagnostic commands, common failure scenarios",
-            "dependencies": [],
-            "details": "Details: Medium | User walkthrough, diagnostic commands, common failure scenarios",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 6,
-        "recommendedSubtasks": 5,
-        "expansionPrompt": "Expand into: 1) Design per-device config overlay system (Git branches, chezmoi templates, or custom merging), 2) Implement config sync mechanism (pull-based polling, git hooks, or push notifications), 3) Create device registration flow with capability auto-discovery and role assignment, 4) Build conflict detection and resolution for concurrent config changes, 5) Document multi-device setup walkthrough with troubleshooting guide",
-        "updatedAt": "2026-01-11T11:52:29.798Z"
-      },
-      {
-        "id": "11",
-        "title": "Context/decision graph prototype",
-        "description": "Generate a basic context graph from logs to answer \"what context was used\" queries.",
-        "details": "Implement a script that builds a simple graph (nodes: runs, files, devices; edges: used-in/produced-by).",
-        "testStrategy": "Run the script and verify it produces a graph output file and simple query results.",
+        "id": 19,
+        "title": "Implement Usage Metrics and Monitoring",
+        "description": "Add telemetry for port allocation patterns, conflict prevention statistics, and performance monitoring.",
+        "details": "Create monitoring and metrics system:\n\n**1. Metrics Collection:**\nExtend auto-port-allocator.sh with metrics:\n```bash\n# Add to hook script\nMETRICS_FILE=\"${STATE_DIR}/metrics.jsonl\"\n\nlog_metric() {\n  local event=$1\n  local data=$2\n  echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\t${event}\\t${data}\" >> \"$METRICS_FILE\"\n}\n\n# Track events\nlog_metric \"port_requested\" \"project=$PROJECT,service=$SERVICE\"\nlog_metric \"port_allocated\" \"project=$PROJECT,port=$PORT,allocation_time_ms=$DURATION\"\nlog_metric \"port_released\" \"project=$PROJECT,port=$PORT,lifetime_seconds=$LIFETIME\"\nlog_metric \"conflict_prevented\" \"requested=$REQUESTED,allocated=$ALLOCATED\"\n```\n\n**2. Metrics Analysis Script:**\n```bash\n#!/bin/bash\n# scripts/metrics.sh\n\ngenerate_report() {\n  echo \"=== Port Allocation Report ===\"\n  echo \"\"\n  \n  # Total allocations\n  total=$(grep -c \"port_allocated\" \"$METRICS_FILE\")\n  echo \"Total allocations: $total\"\n  \n  # Active allocations\n  active=$(wc -l < \"$ALLOCATION_FILE\")\n  echo \"Active allocations: $active\"\n  \n  # Conflicts prevented\n  conflicts=$(grep -c \"conflict_prevented\" \"$METRICS_FILE\")\n  echo \"Conflicts prevented: $conflicts\"\n  \n  # Average allocation time\n  avg_time=$(awk -F'\\t' '/port_allocated/ {\n    match($3, /allocation_time_ms=([0-9]+)/, a)\n    sum += a[1]; count++\n  } END { print sum/count }' \"$METRICS_FILE\")\n  echo \"Avg allocation time: ${avg_time}ms\"\n  \n  # Port range utilization\n  echo \"\"\n  echo \"Port utilization:\"\n  cut -d, -f2 \"$ALLOCATION_FILE\" | sort -n | uniq -c\n}\n\ncase \"$1\" in\n  report) generate_report ;;\n  export) cat \"$METRICS_FILE\" ;;\n  reset) > \"$METRICS_FILE\" ;;\n  *) echo \"Usage: $0 {report|export|reset}\" ;;\nesac\n```\n\n**3. Health Check Endpoint:**\n```bash\n#!/bin/bash\n# scripts/health-check.sh\n\ncheck_port_allocator_health() {\n  local exit_code=0\n  \n  # Check lock file isn't stale\n  if [ -f \"$LOCK_FILE\" ]; then\n    local lock_age=$(( $(date +%s) - $(stat -c %Y \"$LOCK_FILE\") ))\n    if [ $lock_age -gt 60 ]; then\n      echo \"ERROR: Stale lock file (${lock_age}s old)\"\n      exit_code=1\n    fi\n  fi\n  \n  # Check MCP connectivity\n  if ! mcp-cli info mcp-router/get_available_port >/dev/null 2>&1; then\n    echo \"ERROR: MCP router unreachable\"\n    exit_code=1\n  fi\n  \n  # Check state file integrity\n  if [ -f \"$ALLOCATION_FILE\" ]; then\n    # Validate CSV format\n    while IFS=, read -r project port pid timestamp; do\n      if [[ ! \"$port\" =~ ^[0-9]+$ ]] || [ \"$port\" -lt 8000 ] || [ \"$port\" -gt 9999 ]; then\n        echo \"ERROR: Invalid port in allocation: $port\"\n        exit_code=1\n      fi\n    done < \"$ALLOCATION_FILE\"\n  fi\n  \n  # Check quota compliance\n  local max_allocations=0\n  while IFS=, read -r project port pid timestamp; do\n    local count=$(grep -c \",$project,\" \"$ALLOCATION_FILE\")\n    if [ \"$count\" -gt \"$PORT_ALLOC_QUOTA\" ]; then\n      echo \"WARNING: Project $project exceeds quota ($count > $PORT_ALLOC_QUOTA)\"\n    fi\n  done < <(cut -d, -f1 \"$ALLOCATION_FILE\" | sort -u)\n  \n  return $exit_code\n}\n\ncheck_port_allocator_health\n```\n\n**4. Performance Benchmark:**\n```bash\n#!/bin/bash\n# tests/benchmark.sh\n\nbenchmark_concurrent_allocations() {\n  local count=$1\n  local start_time=$(date +%s%N)\n  \n  for i in $(seq 1 \"$count\"); do\n    allocate_port \"bench-$i\" &\n  done\n  wait\n  \n  local end_time=$(date +%s%N)\n  local duration_ms=$(( (end_time - start_time) / 1000000 ))\n  local ops_per_second=$(( (count * 1000) / duration_ms ))\n  \n  echo \"Allocations: $count\"\n  echo \"Duration: ${duration_ms}ms\"\n  echo \"Throughput: ${ops_per_second} ops/sec\"\n}\n\nbenchmark_concurrent_allocations 100\n```\n\n**5. Prometheus Integration (optional):**\n```bash\n#!/bin/bash\n# scripts/prometheus-exporter.sh\n\nexport_prometheus_metrics() {\n  echo \"# HELP port_allocator_allocations_total Total port allocations\"\n  echo \"# TYPE port_allocator_allocations_total counter\"\n  echo \"port_allocator_allocations_total $(grep -c port_allocated \"$METRICS_FILE\")\"\n  \n  echo \"# HELP port_allocator_active_allocations Current active allocations\"\n  echo \"# TYPE port_allocator_active_allocations gauge\"\n  echo \"port_allocator_active_allocations $(wc -l < \"$ALLOCATION_FILE\")\"\n  \n  echo \"# HELP port_allocator_conflicts_prevented_total Total conflicts prevented\"\n  echo \"# TYPE port_allocator_conflicts_prevented_total counter\"\n  echo \"port_allocator_conflicts_prevented_total $(grep -c conflict_prevented \"$METRICS_FILE\")\"\n}\n\nexport_prometheus_metrics\n```\n\n**Dependencies:** jq, bc (for calculations), mcp-cli",
+        "testStrategy": "1. Run metrics report: ./scripts/metrics.sh report\n2. Verify metrics file format: head -n 5 ~/.claude/var/run/metrics.jsonl\n3. Test health check: ./scripts/health-check.sh (should return 0)\n4. Run benchmark: ./tests/benchmark.sh 100 (should complete < 5 seconds)\n5. Verify Prometheus exporter output format\n6. Test metrics reset: ./scripts/metrics.sh reset\n7. Validate metrics accuracy by comparing with actual allocations",
         "priority": "low",
         "dependencies": [
-          "8"
+          18
         ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Design graph data model and entity schemas",
-            "description": "Define the complete graph data model including node types, edge types, and their attributes with JSON schema definitions",
-            "dependencies": [],
-            "details": "Create schemas for nodes: Run (id, timestamp, device, model, context_size), File (path, hash, size, created_at), Device (id, hostname, role), Model (name, provider, version). Edge types: used_in (file→run), produced_by (file→run), preceded_by (run→run). Store schemas in atlas/config/graph-schemas.json. Include validation rules and examples.",
-            "status": "pending",
-            "testStrategy": "Validate schemas using jsonschema Python library against example entities; document schema in graph-model.md",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Implement JSONL log parser for graph entity extraction",
-            "description": "Build a parser that reads atlas/logs/*.jsonl files and extracts graph entities and relationships",
-            "dependencies": [
-              1
-            ],
-            "details": "Create atlas/services/log_parser.py with functions: parse_log_file(filepath) returns List[Entity], extract_relationships(events) returns List[Edge]. Handle log formats: context_used, file_created, run_completed. Map log event fields to graph schema attributes. Handle malformed entries gracefully with error logging. Output structured data ready for graph construction.",
-            "status": "pending",
-            "testStrategy": "Create sample JSONL log file with 10-20 events; verify parser extracts correct entities and relationships; unit test with pytest",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Implement graph storage and query engine",
-            "description": "Build graph representation using NetworkX with file-based persistence and query API",
-            "dependencies": [
-              2
-            ],
-            "details": "Create atlas/services/context_graph.py: class ContextGraph with methods add_node(), add_edge(), save_graph(path), load_graph(path). Use NetworkX MultiDiGraph for directed multi-edges. Implement query methods: get_context_for_run(run_id), get_produced_files(run_id), get_run_history(file_path). Store graph as .graphml and nodes/edges as .jsonl for portability. Add CLI interface: atlas-query --context <run_id>.",
-            "status": "pending",
-            "testStrategy": "Load sample data, verify persistence (save/load cycle), test all query methods against known graph state",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Create graph visualization and export functionality",
-            "description": "Implement multiple export formats for graph visualization including GraphViz DOT, JSON, and ASCII",
-            "dependencies": [
-              3
-            ],
-            "details": "Add export methods to ContextGraph: export_dot(filepath) generates GraphViz DOT with subgraphs for each entity type, color-coded edges; export_json(filepath) dumps nodes/edges as structured JSON; export_ascii(filepath) creates simple text visualization. Create atlas/services/graph_viz.py with layout helpers. Add CLI: atlas-export --format dot|json|ascii --output <path>. Include sample generated outputs in atlas/docs/graph-examples/",
-            "status": "pending",
-            "testStrategy": "Generate all three formats from sample graph; verify DOT renders with dot/xdot; validate JSON schema; check ASCII readability",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Create integration test suite and documentation",
-            "description": "Build end-to-end tests and documentation for the context graph system",
-            "dependencies": [
-              4
-            ],
-            "details": "Create tests/test_context_graph.py with: test_full_pipeline() (parse→build→query→export), test_query_accuracy() (verify context chains), test_large_graph() (1000+ nodes performance). Write atlas/docs/context-graph.md covering: architecture, data model, usage examples, query patterns, troubleshooting. Add quickstart example: atlas/scripts/build_demo_graph.sh generates sample graph from synthetic logs. Include integration with existing atlas logging if available.",
-            "status": "pending",
-            "testStrategy": "Run full test suite with pytest -v; verify documentation examples execute successfully; demo script produces valid output",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 6,
-        "recommendedSubtasks": 5,
-        "expansionPrompt": "Break into: 1) Design graph data model (nodes: runs, files, devices, models; edges: used-in, produced-by, preceded-by), 2) Implement log parser to extract graph entities and relationships from JSONL logs, 3) Choose graph representation (adjacency list, networkx, or custom) and storage format, 4) Build graph query API (what context was used for X? what did file Y produce?), 5) Create visualization export (graphviz DOT, JSON, or simple ASCII)",
-        "updatedAt": "2026-01-11T11:52:33.538Z"
-      },
-      {
-        "id": "12",
-        "title": "Hardening and device bootstrap docs",
-        "description": "Document security, key management, and recovery steps for v1 readiness.",
-        "details": "Create docs covering key storage, secure registration, failure recovery, and minimal runbook for device replacement.",
-        "testStrategy": "Docs reviewed and linked from atlas/docs index.",
-        "priority": "low",
-        "dependencies": [
-          "9",
-          "10"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Document Key Management Strategy",
-            "description": "Document Key Management Strategy",
-            "dependencies": [],
-            "details": "Details: Document Key Management Strategy",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Create Secure Registration Checklist",
-            "description": "Create Secure Registration Checklist",
-            "dependencies": [],
-            "details": "Details: Create Secure Registration Checklist",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Write Failure Recovery Runbooks",
-            "description": "Write Failure Recovery Runbooks",
-            "dependencies": [],
-            "details": "Details: Write Failure Recovery Runbooks",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Document Security Hardening Steps",
-            "description": "Document Security Hardening Steps",
-            "dependencies": [],
-            "details": "Details: Document Security Hardening Steps",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Create Troubleshooting Guide",
-            "description": "Create Troubleshooting Guide",
-            "dependencies": [],
-            "details": "Details: Create Troubleshooting Guide",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 3,
-        "recommendedSubtasks": 5,
-        "expansionPrompt": "Expand into: 1) Document key management strategy (generation, storage, rotation, revocation), 2) Create secure registration checklist (TLS, authentication, device attestation), 3) Write failure recovery runbooks (device replacement, data recovery, rollback procedures), 4) Document security hardening steps (firewall rules, least privilege, audit logging), 5) Create troubleshooting guide with common issues and diagnostic commands",
-        "updatedAt": "2026-01-11T11:52:37.269Z"
+        "status": "pending",
+        "subtasks": []
       }
     ],
     "metadata": {
-      "version": "1.0.0",
-      "lastModified": "2026-01-11T11:52:37.270Z",
-      "taskCount": 12,
-      "completedCount": 12,
-      "tags": [
-        "master"
-      ]
+      "created": "2026-01-17T06:11:18.247Z",
+      "updated": "2026-01-17T06:11:18.247Z",
+      "description": "Tasks for master context"
     }
   }
 }

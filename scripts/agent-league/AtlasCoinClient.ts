@@ -100,6 +100,14 @@ export class AtlasCoinClient {
     });
   }
 
+  async listBounties(status?: string, options: RequestOptions = {}): Promise<Bounty[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : "";
+    return this.request<Bounty[]>(`/api/bounties${query}`, {
+      method: "GET",
+      ...options,
+    });
+  }
+
   async settleBounty(bountyId: string, options: RequestOptions = {}): Promise<Bounty> {
     return this.request<Bounty>(`/api/bounties/${encodeURIComponent(bountyId)}/settle`, {
       method: "POST",

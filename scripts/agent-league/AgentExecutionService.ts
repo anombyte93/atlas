@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import path from "path";
 import { IEventBus, ILogger } from "../events/types";
+import { SECURITY_CONFIG } from "./SecurityPolicy";
 
 export interface ExecutionOptions {
   timeoutMs?: number;
@@ -233,14 +234,20 @@ export class AgentExecutionService {
       containerName,
       "--memory",
       `${memoryMb}m`,
+      "--kernel-memory",
+      "64m",
       "--cpus",
       cpus.toString(),
       "--read-only",
       "--cap-drop=ALL",
       "--security-opt=no-new-privileges",
+      `--security-opt=seccomp=${SECURITY_CONFIG.seccompProfilePath}`,
+      `--security-opt=apparmor=${SECURITY_CONFIG.apparmorProfileName}`,
       "--pids-limit=100",
-      "--tmpfs=/tmp:rw",
+      "--tmpfs=/tmp:rw,noexec,nosuid,size=64m",
       "--network=none",
+      "--user=nobody",
+      "--userns-remap=default",
       "-v",
       `${workspaceDir}:/workspace:ro`,
       "-w",

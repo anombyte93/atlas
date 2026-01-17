@@ -66,7 +66,15 @@ export async function POST(req: Request) {
       allergens: Array.from(mergedAllergens),
     };
 
-    await writeDb(db);
+    try {
+      await writeDb(db);
+    } catch (dbError) {
+      console.error('Database write failed:', dbError);
+      return NextResponse.json(
+        { error: 'Failed to save preferences' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(db.preferences);
   } catch (err: any) {

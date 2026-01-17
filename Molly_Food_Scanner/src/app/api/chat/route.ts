@@ -77,6 +77,7 @@ export async function POST(req: Request) {
         const message =
           typeof body?.message === "string" ? body.message.trim() : "";
         const history = Array.isArray(body?.history) ? body.history : [];
+        const scanId = typeof body?.scanId === "string" ? body.scanId : null;
 
         if (!message) {
           enqueueText(controller, "Message is required.");
@@ -84,12 +85,28 @@ export async function POST(req: Request) {
           return;
         }
 
+        let contextInjection = "";
+        if (scanId) {
+            const db = await readDb();
+            const scan = db.images.find(img => img.id === scanId);
+            if (scan && scan.analysisResult) {
+                contextInjection = `
+[CONTEXT: User is viewing a scan of "${scan.analysisResult.name || 'Unknown Food'}"]
+Summary: ${scan.analysisResult.summary || 'N/A'}
+Rating: ${scan.analysisResult.rating || 'N/A'}
+Chemicals: ${(scan.analysisResult.chemicals || []).map(c => `${c.name} (${c.risk})`).join(', ')}
+[End of Context]
+
+`;
+            }
+        }
+
         messages = [
           ...history.map((item: any) => ({
             role: String(item?.role || "user"),
             content: String(item?.content || ""),
           })),
-          { role: "user", content: message },
+          { role: "user", content: contextInjection + message },
         ];
 
         const mcpResponse = await callMcpChatStream(messages);
@@ -142,7 +159,13 @@ export async function POST(req: Request) {
             createdAt: new Date().toISOString(),
             messages: [...messages, { role: "assistant", content: assistantText }],
           });
-          await writeDb(db);
+          try {
+            await writeDb(db);
+          } catch (dbError) {
+            console.error('Database write failed:', dbError);
+            // Note: In a stream, we can't easily send an error response after streaming has started
+            // The error is logged but not sent to client
+          }
         }
       }
     },

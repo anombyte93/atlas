@@ -1,59 +1,95 @@
 import { NextResponse } from "next/server";
-import { callMcpAnalyze, callOpenAIAnalyze } from "../_lib/mcp";
-import { readDb, writeDb } from "../_lib/storage";
+import { analyzeWithGemini } from "../_lib/gemini-analyzer";
+import fs from "fs/promises";
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const image_url = typeof body?.image_url === "string" ? body.image_url : undefined;
-    const barcode_text =
-      typeof body?.barcode_text === "string" ? body.barcode_text : undefined;
+    const { image_url, barcode_text } = body;
 
     if (!image_url && !barcode_text) {
       return NextResponse.json(
-        { error: "Provide image_url or barcode_text." },
+        { error: "Provide image_url or barcode_text" },
         { status: 400 }
       );
     }
 
-    const abortController = new AbortController();
-    const payload = { image_url, barcode_text };
+    // Validate image_url is safe (prevent directory traversal)
+    const safeImageUrl = image_url?.replace(/\.\./g, '').replace(/\/+/g, '/');
+    if (!safeImageUrl?.startsWith('/uploads/')) {
+      return NextResponse.json(
+        { error: "Invalid image URL" },
+        { status: 400 }
+      );
+    }
 
-    const mcpResult = await callMcpAnalyze(payload, abortController.signal);
-    const aiResult = mcpResult || (await callOpenAIAnalyze(payload, abortController.signal));
+    // Call real Gemini analyzer
+    const image_path = image_url
+      ? `${process.cwd()}/public${safeImageUrl}`
+      : undefined;
 
-    const analysisResult = aiResult || {
-      analysis:
-        "Unable to reach AI service. Provide ingredient list or try again later.",
-      chemicals: [],
-      rating: "unknown",
-      source: "fallback",
-    };
+    // Verify file exists before analysis
+    if (image_path) {
+      try {
+        await fs.access(image_path, fs.constants.F_OK);
+      } catch {
+        return NextResponse.json(
+          { error: "Image file not found", details: `Could not access ${image_url}` },
+          { status: 404 }
+        );
+      }
+    }
 
-    const db = await readDb();
-    const entry = {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+    const result = await analyzeWithGemini({
       image_url,
       barcode_text,
-      analysis: analysisResult.analysis,
-      chemicals: analysisResult.chemicals,
-      rating: analysisResult.rating,
-      source: analysisResult.source,
-    };
-    db.analyses.unshift(entry);
-    await writeDb(db);
-
-    return NextResponse.json({
-      ...analysisResult,
-      entryId: entry.id,
+      image_path,
     });
-  } catch (err: any) {
+
+    // Return analysis with confirmation flag
+    return NextResponse.json({
+      name: result.name,
+      barcode: barcode_text,
+      rating: result.rating,
+      summary: result.summary,
+      chemicals: result.chemicals,
+      sources: result.sources,
+      needs_confirmation: result.needs_confirmation ?? false,
+      suggested_name: result.suggested_name ?? null,
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error('Operation failed:', errorMessage, stack || '');
+
+    let suggestion = "Please try again with a clearer image or different angle.";
+    let status = 500;
+
+    const lowerError = errorMessage.toLowerCase();
+    if (lowerError.includes("rate limit") || lowerError.includes("quota")) {
+      suggestion = "The AI service is busy. Please wait a moment and try again.";
+      status = 429;
+    } else if (lowerError.includes("safety") || lowerError.includes("blocked")) {
+      suggestion = "The image was flagged by safety filters. Please try a different food image.";
+      status = 400;
+    } else if (lowerError.includes("authentication") || lowerError.includes("auth")) {
+      suggestion = "Service configuration error. Please contact support.";
+      status = 503;
+    } else if (lowerError.includes("valid json") || lowerError.includes("parse")) {
+      suggestion = "The AI response was malformed. This happens occasionally, please retry.";
+      status = 502;
+    }
+
     return NextResponse.json(
-      { error: "Failed to analyze food.", details: err?.message || "Unknown" },
-      { status: 500 }
+      { 
+        error: "Food analysis failed", 
+        details: errorMessage,
+        suggestion 
+      },
+      { status }
     );
   }
 }

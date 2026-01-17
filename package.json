@@ -23,6 +23,8 @@
   },
   "homepage": "https://github.com/anombyte93/atlas#readme",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "@qdrant/js-client-rest": "^1.16.2",
     "@types/opossum": "^8.1.9",
     "opossum": "^9.0.0"
   }

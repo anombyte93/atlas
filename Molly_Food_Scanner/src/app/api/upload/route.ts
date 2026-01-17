@@ -1,24 +1,14 @@
 import { NextResponse } from "next/server";
 import path from "path";
 import { promises as fs } from "fs";
+import {
+  detectImageFormat,
+  getExtension,
+  isAllowedFile,
+  MAX_FILE_SIZE_BYTES,
+} from "@/lib/image-utils";
 
 export const runtime = "nodejs";
-
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png"]);
-const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png"];
-
-const isAllowedFile = (file: File) => {
-  if (ALLOWED_MIME_TYPES.has(file.type)) return true;
-  const lowerName = file.name.toLowerCase();
-  return ALLOWED_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
-};
-
-const getExtension = (fileName: string) => {
-  const lowerName = fileName.toLowerCase();
-  if (lowerName.endsWith(".png")) return "png";
-  return "jpg";
-};
 
 export async function POST(req: Request) {
   try {
@@ -31,7 +21,7 @@ export async function POST(req: Request) {
 
     if (!isAllowedFile(file)) {
       return NextResponse.json(
-        { error: "Only .jpg and .png images are supported." },
+        { error: "Only .jpg, .png, and .webp images are supported." },
         { status: 400 },
       );
     }
@@ -45,6 +35,37 @@ export async function POST(req: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Validate image content using magic bytes
+    const detectedFormat = detectImageFormat(buffer);
+    if (!detectedFormat) {
+      return NextResponse.json(
+        { error: "Invalid image file. File may be corrupted or not a valid image format." },
+        { status: 400 }
+      );
+    }
+
+    // Strict validation: Ensure detected format matches file extension
+    const declaredExt = file.name.toLowerCase().split('.').pop();
+    let isMatch = false;
+
+    if (detectedFormat === 'jpg' && (declaredExt === 'jpg' || declaredExt === 'jpeg')) {
+      isMatch = true;
+    } else if (detectedFormat === 'png' && declaredExt === 'png') {
+      isMatch = true;
+    } else if (detectedFormat === 'webp' && declaredExt === 'webp') {
+      isMatch = true;
+    }
+
+    if (!isMatch) {
+      return NextResponse.json(
+        { 
+          error: `File content detected as ${detectedFormat?.toUpperCase()} but extension is .${declaredExt}. Please rename the file to end in .${detectedFormat}.` 
+        },
+        { status: 400 }
+      );
+    }
+
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     await fs.mkdir(uploadsDir, { recursive: true });
 
@@ -53,11 +74,14 @@ export async function POST(req: Request) {
     await fs.writeFile(filePath, buffer);
 
     return NextResponse.json({ image_url: `/uploads/${fileName}` });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.error('Operation failed:', errorMessage, stack || '');
     return NextResponse.json(
       {
-        error: "Failed to upload image.",
-        details: error?.message || "Unknown",
+        error: "Operation failed",
+        details: errorMessage,
       },
       { status: 500 },
     );
