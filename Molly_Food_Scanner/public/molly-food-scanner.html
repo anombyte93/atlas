@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molly Food Scanner - AI-Powered Food Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.3);
+        }
+
+        .food-card {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .rating-ring {
+            animation: fillRing 1s ease-out forwards;
+        }
+
+        @keyframes fillRing {
+            from { stroke-dashoffset: 251; }
+        }
+
+        .chat-bubble {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .typing-dot {
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <p class="text-sm uppercase tracking-[0.3em] text-slate-400 mb-4">Molly Food Scanner</p>
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                <span class="gradient-text">Is this food bad for me?</span>
+            </h1>
+            <p class="text-lg text-slate-300 max-w-2xl mx-auto">
+                Upload a photo or scan a barcode to instantly analyze ingredients, additives, and health impacts with AI.
+            </p>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid lg:grid-cols-[1.2fr_1fr] gap-8">
+            <!-- Left Column -->
+            <div class="space-y-8">
+                <!-- Upload Section -->
+                <div class="glass-card rounded-3xl p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold">Scan Food</h2>
+                        <span id="statusBadge" class="px-4 py-2 rounded-full text-sm bg-slate-700/50 text-slate-300">
+                            Ready
+                        </span>
+                    </div>
+
+                    <div id="uploadZone" class="upload-zone rounded-2xl p-8 text-center cursor-pointer">
+                        <div class="space-y-4">
+                            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-lg font-medium">Drag & drop a food image here</p>
+                            <p class="text-sm text-slate-400">PNG or JPG up to 5MB</p>
+                            <div class="flex gap-4 justify-center mt-6">
+                                <button id="uploadBtn" class="btn-primary px-6 py-3 rounded-xl font-medium">
+                                    Upload Image
+                                </button>
+                                <button id="scanBtn" class="px-6 py-3 rounded-xl font-medium bg-slate-700/50 hover:bg-slate-700 transition">
+                                    Scan Barcode
+                                </button>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/png,image/jpeg" class="hidden">
+                    </div>
+
+                    <!-- Preview -->
+                    <div id="previewContainer" class="hidden mt-6">
+                        <img id="previewImage" class="w-full max-h-64 object-contain rounded-2xl bg-slate-900/50" alt="Preview">
+                    </div>
+                </div>
+
+                <!-- Food Card -->
+                <div id="foodCard" class="food-card glass-card rounded-3xl p-8 hidden">
+                    <div class="flex items-start justify-between mb-6">
+                        <div>
+                            <h3 id="foodName" class="text-2xl font-bold mb-2">Sparkling Citrus Water</h3>
+                            <p id="barcode" class="text-sm text-slate-400">Barcode: 0192837465012</p>
+                        </div>
+                        <div class="relative w-32 h-32">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="64" cy="64" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/>
+                                <circle id="ratingCircle" cx="64" cy="64" r="40" fill="none" stroke="#ef4444" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" class="rating-ring"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="ratingScore" class="text-3xl font-bold">38</span>
+                                <span id="ratingLabel" class="text-xs text-slate-400">Bad</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/50 rounded-2xl p-6 mb-6">
+                        <h4 class="font-semibold mb-2">Summary</h4>
+                        <p id="summary" class="text-slate-300 text-sm">Contains artificial sweeteners and preservatives. Moderate consumption advised.</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-semibold">Chemicals found</h4>
+                            <button id="toggleChemicals" class="text-blue-400 hover:text-blue-300 text-sm">View (3)</button>
+                        </div>
+                        <div id="chemicalsList" class="hidden space-y-3">
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium">Sucralose</span>
+                                    <span class="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">Medium</span>
+                                </div>
+                                <p class="text-xs text-slate-400">Artificial sweetener linked to glucose response changes.</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium">Sodium benzoate</span>
+                                    <span class="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">Medium</span>
+                                </div>
+                                <p class="text-xs text-slate-400">Preservative that can irritate sensitive stomachs.</p>
+                            </div>
+                            <div class="bg-slate-900/50 rounded-xl p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium">Yellow 5</span>
+                                    <span class="px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">High</span>
+                                </div>
+                                <p class="text-xs text-slate-400">Synthetic color additive with mixed safety studies.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="w-full mt-6 py-3 rounded-xl font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition">
+                        Add to bad foods
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column - Chat -->
+            <div class="glass-card rounded-3xl p-6 flex flex-col h-[600px]">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold">Ask Molly</h2>
+                    <span id="chatStatus" class="px-3 py-1 rounded-full text-xs bg-slate-700/50 text-slate-300">
+                        Ready
+                    </span>
+                </div>
+
+                <div id="chatMessages" class="flex-1 overflow-y-auto space-y-4 mb-4">
+                    <div class="chat-bubble flex justify-start">
+                        <div class="max-w-[85%] bg-slate-800/50 rounded-2xl px-4 py-3">
+                            <p class="text-xs text-slate-400 mb-2">ASSISTANT</p>
+                            <p class="text-sm">Upload a label or barcode. I will summarize additives, allergens, and risk factors.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <input type="text" id="chatInput" placeholder="Ask about ingredients, allergens, or ratings" class="flex-1 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 focus:border-blue-500 focus:outline-none transition">
+                    <button id="sendBtn" class="btn-primary px-6 py-3 rounded-xl font-medium">
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-16 text-center text-sm text-slate-500">
+            <p>Powered by AI • Built with ❤️ for healthier eating</p>
+        </footer>
+    </div>
+
+    <script>
+        // Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const foodCard = document.getElementById('foodCard');
+        const toggleChemicals = document.getElementById('toggleChemicals');
+        const chemicalsList = document.getElementById('chemicalsList');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const statusBadge = document.getElementById('statusBadge');
+        const chatStatus = document.getElementById('chatStatus');
+
+        // Upload Zone
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        }
+
+        async function handleFile(file) {
+            if (!file.type.match('image.*')) {
+                showError('Please select an image file (PNG, JPG, or WebP)');
+                return;
+            }
+
+            // File size validation (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showError('File is too large. Maximum size is 5MB.');
+                return;
+            }
+
+            try {
+                // Show preview immediately
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+
+                // Step 1: Upload file
+                statusBadge.textContent = 'Uploading...';
+                statusBadge.classList.add('pulse');
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.error || 'Upload failed');
+                }
+
+                const uploadData = await uploadResponse.json();
+
+                if (!uploadData.image_url) {
+                    throw new Error('No image URL returned from upload');
+                }
+
+                // Step 2: Analyze food
+                statusBadge.textContent = 'Analyzing...';
+
+                const analyzeResponse = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_url: uploadData.image_url
+                    })
+                });
+
+                if (!analyzeResponse.ok) {
+                    const errorData = await analyzeResponse.json();
+                    throw new Error(errorData.details || errorData.error || 'Analysis failed');
+                }
+
+                const analysis = await analyzeResponse.json();
+
+                // Step 3: Display results
+                displayFoodAnalysis(analysis);
+
+                // Step 4: Store food context for chat
+                if (analysis.id) {
+                    currentScanId = analysis.id;
+                    currentAnalysisData = analysis;
+                }
+
+                statusBadge.textContent = 'Complete';
+                statusBadge.classList.remove('pulse');
+
+            } catch (error) {
+                console.error('Error processing file:', error);
+                showError(error.message || 'Failed to analyze food. Please try again.');
+                statusBadge.textContent = 'Error';
+                statusBadge.classList.remove('pulse');
+            }
+        }
+
+        function displayFoodAnalysis(data) {
+            // Show food card
+            foodCard.classList.remove('hidden');
+
+            // Update food name
+            document.getElementById('foodName').textContent = data.name || 'Unknown Food';
+
+            // Update barcode (if available)
+            if (data.barcode) {
+                document.getElementById('barcode').textContent = `Barcode: ${data.barcode}`;
+                document.getElementById('barcode').classList.remove('hidden');
+            } else {
+                document.getElementById('barcode').classList.add('hidden');
+            }
+
+            // Update rating
+            const score = data.rating || 0;
+            document.getElementById('ratingScore').textContent = score;
+
+            const circle = document.getElementById('ratingCircle');
+            const circumference = 2 * Math.PI * 40;
+            const offset = circumference - (score / 100) * circumference;
+
+            // Reset animation
+            circle.style.strokeDashoffset = circumference;
+
+            // Trigger animation after small delay
+            setTimeout(() => {
+                circle.style.strokeDashoffset = offset;
+
+                // Update color and label based on score
+                if (score >= 70) {
+                    circle.style.stroke = '#10b981';
+                    document.getElementById('ratingLabel').textContent = 'Good';
+                } else if (score >= 45) {
+                    circle.style.stroke = '#f59e0b';
+                    document.getElementById('ratingLabel').textContent = 'Mixed';
+                } else {
+                    circle.style.stroke = '#ef4444';
+                    document.getElementById('ratingLabel').textContent = 'Bad';
+                }
+            }, 100);
+
+            // Update summary
+            document.getElementById('summary').textContent = data.summary || 'No analysis available.';
+
+            // Update chemicals list
+            const chemicalsList = document.getElementById('chemicalsList');
+            chemicalsList.innerHTML = '';
+
+            if (data.chemicals && data.chemicals.length > 0) {
+                data.chemicals.forEach(chemical => {
+                    const chemicalDiv = document.createElement('div');
+                    chemicalDiv.className = 'bg-slate-900/50 rounded-xl p-4';
+
+                    // Determine risk level color
+                    const riskLevel = chemical.risk_level || 'Unknown';
+                    let badgeClass = 'bg-slate-500/20 text-slate-400';
+
+                    if (riskLevel.toLowerCase() === 'high') {
+                        badgeClass = 'bg-red-500/20 text-red-400';
+                    } else if (riskLevel.toLowerCase() === 'medium') {
+                        badgeClass = 'bg-yellow-500/20 text-yellow-400';
+                    } else if (riskLevel.toLowerCase() === 'low') {
+                        badgeClass = 'bg-green-500/20 text-green-400';
+                    }
+
+                    chemicalDiv.innerHTML = `
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium">${chemical.name}</span>
+                            <span class="px-2 py-1 rounded-full text-xs ${badgeClass}">${riskLevel}</span>
+                        </div>
+                        <p class="text-xs text-slate-400">${chemical.description || 'No description available.'}</p>
+                    `;
+
+                    chemicalsList.appendChild(chemicalDiv);
+                });
+
+                // Update toggle button text
+                document.getElementById('toggleChemicals').textContent = `View (${data.chemicals.length})`;
+            } else {
+                chemicalsList.innerHTML = '<p class="text-sm text-slate-400">No chemicals detected.</p>';
+                document.getElementById('toggleChemicals').textContent = 'View (0)';
+            }
+
+            // Hide chemicals list initially
+            chemicalsList.classList.add('hidden');
+
+            // Add assistant message with analysis
+            addMessage('assistant', `Analyzed: ${data.name}. ${data.summary}`);
+        }
+
+        function showError(message) {
+            // Add error message to chat
+            addMessage('assistant', `❌ Error: ${message}`);
+
+            // Show alert for immediate feedback
+            alert(message);
+        }
+
+        // Toggle Chemicals
+        toggleChemicals.addEventListener('click', () => {
+            chemicalsList.classList.toggle('hidden');
+            toggleChemicals.textContent = chemicalsList.classList.contains('hidden') ? 'View (3)' : 'Hide (3)';
+        });
+
+        // Chat
+        function addMessage(role, content) {
+            const div = document.createElement('div');
+            div.className = `chat-bubble flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                <div class="max-w-[85%] rounded-2xl px-4 py-3 ${role === 'user' ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-slate-800/50'}">
+                    <p class="text-xs ${role === 'user' ? 'text-white/70' : 'text-slate-400'} mb-2">${role.toUpperCase()}</p>
+                    <p class="text-sm">${content}</p>
+                </div>
+            `;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const div = document.createElement('div');
+            div.id = 'typingIndicator';
+            div.className = 'chat-bubble flex justify-start';
+            div.innerHTML = `
+                <div class="bg-slate-800/50 rounded-2xl px-4 py-3">
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+                        <div class="w-2 h-2 rounded-full bg-blue-400 typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Chat history for context
+        let chatHistory = [];
+
+        // Food analysis context
+        let currentScanId = null;
+        let currentAnalysisData = null;
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            addMessage('user', message);
+            chatInput.value = '';
+            chatStatus.textContent = 'Streaming...';
+            chatStatus.classList.add('pulse');
+
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: chatHistory,
+                        scanId: currentScanId  // Include food context if available
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get response');
+                }
+
+                removeTypingIndicator();
+
+                // Create assistant message container for streaming
+                const assistantDiv = document.createElement('div');
+                assistantDiv.className = 'chat-bubble flex justify-start';
+                assistantDiv.innerHTML = `
+                    <div class="max-w-[85%] bg-slate-800/50 rounded-2xl px-4 py-3">
+                        <p class="text-xs text-slate-400 mb-2">ASSISTANT</p>
+                        <p class="text-sm" id="streaming-content"></p>
+                    </div>
+                `;
+                chatMessages.appendChild(assistantDiv);
+                const contentEl = assistantDiv.querySelector('#streaming-content');
+
+                // Stream the response
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullResponse += chunk;
+                    contentEl.textContent = fullResponse;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+
+                // Add to history
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: fullResponse });
+
+                chatStatus.textContent = 'Ready';
+                chatStatus.classList.remove('pulse');
+
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('assistant', 'Sorry, I had trouble connecting. Please try again.');
+                chatStatus.textContent = 'Ready';
+                chatStatus.classList.remove('pulse');
+                console.error('Chat error:', error);
+            }
+        }
+
+        // Barcode Scan (placeholder)
+        document.getElementById('scanBtn').addEventListener('click', () => {
+            alert('Barcode scanning would open camera here');
+        });
+    </script>
+</body>
+</html>

@@ -90,12 +90,25 @@ export async function POST(req: Request) {
             const db = await readDb();
             const scan = db.images.find(img => img.id === scanId);
             if (scan && scan.analysisResult) {
+                const chemicals = (scan.analysisResult.chemicals || [])
+                    .map(c => `${c.name} (${c.risk} risk: ${c.note})`)
+                    .join('; ');
+
                 contextInjection = `
-[CONTEXT: User is viewing a scan of "${scan.analysisResult.name || 'Unknown Food'}"]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🍽️ FOOD CONTEXT - USER IS ASKING ABOUT THIS SPECIFIC FOOD:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Food Name: ${scan.analysisResult.name || 'Unknown Food'}
+Rating: ${scan.analysisResult.rating || 'N/A'}/100
 Summary: ${scan.analysisResult.summary || 'N/A'}
-Rating: ${scan.analysisResult.rating || 'N/A'}
-Chemicals: ${(scan.analysisResult.chemicals || []).map(c => `${c.name} (${c.risk})`).join(', ')}
-[End of Context]
+
+Chemicals Found:
+${chemicals || 'None detected'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+User's Question Below:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 `;
             }
