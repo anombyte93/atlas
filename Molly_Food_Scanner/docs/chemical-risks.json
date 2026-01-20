@@ -1,0 +1,618 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-01-20",
+  "description": "Authoritative guide to harmful food additives for Molly Food Scanner",
+  "additives": [
+    {
+      "id": "potassium_bromate",
+      "name": "Potassium Bromate",
+      "e_number": "E924",
+      "risk_level": "high",
+      "category": "flour_treatment_agent",
+      "common_names": ["Potassium Bromate", "E924"],
+      "common_uses": ["bread", "rolls", "cookies", "crackers", "pizza dough"],
+      "health_risks": ["kidney_cancer", "thyroid_cancer", "carcinogen"],
+      "regulatory_status": {
+        "eu": "banned",
+        "us": "permitted",
+        "california": "banned_2023",
+        "other_banned": ["China", "India", "Brazil", "Canada"]
+      },
+      "consumer_advice": "AVOID. Choose potassium bromate-free bread. Many companies have phased it out voluntarily.",
+      "sources": [
+        {
+          "organization": "EFSA",
+          "type": "evaluation"
+        },
+        {
+          "organization": "California Proposition 65",
+          "type": "regulatory_listing"
+        }
+      ]
+    },
+    {
+      "id": "bvo",
+      "name": "Brominated Vegetable Oil",
+      "e_number": null,
+      "risk_level": "high",
+      "category": "emulsifier",
+      "common_names": ["BVO", "Brominated Vegetable Oil"],
+      "common_uses": ["citrus_sodas", "sports_drinks", "fruit_beverages"],
+      "health_risks": ["bromine_accumulation", "neurological_effects", "memory_loss"],
+      "regulatory_status": {
+        "eu": "banned",
+        "us": "permitted_but_phasing_out",
+        "japan": "banned",
+        "india": "banned"
+      },
+      "consumer_advice": "AVOID. Choose beverages without BVO. Most major brands have already removed it.",
+      "sources": [
+        {
+          "organization": "FDA",
+          "type": "food_additive_regulations"
+        },
+        {
+          "organization": "EU",
+          "type": "food_additive_regulations"
+        }
+      ]
+    },
+    {
+      "id": "red_3",
+      "name": "Red 3 / Erythrosine",
+      "e_number": "E127",
+      "risk_level": "high",
+      "category": "artificial_color",
+      "common_names": ["Red 3", "Erythrosine", "E127"],
+      "common_uses": ["maraschino_cherries", "candies", "baked_goods", "cake_decorations"],
+      "health_risks": ["thyroid_tumors", "iodine_uptake_interference"],
+      "regulatory_status": {
+        "eu": "banned",
+        "us": "banned_2025"
+      },
+      "consumer_advice": "AVOID. Look for products colored with fruit juices or natural colors like beet juice.",
+      "sources": [
+        {
+          "organization": "FDA",
+          "type": "final_determination"
+        },
+        {
+          "organization": "EFSA",
+          "type": "evaluations"
+        }
+      ]
+    },
+    {
+      "id": "partially_hydrogenated_oils",
+      "name": "Partially Hydrogenated Oils (Trans Fats)",
+      "e_number": null,
+      "risk_level": "high",
+      "category": "fat_source",
+      "common_names": ["PHOs", "trans_fats", "partially_hydrogenated_oils"],
+      "common_uses": ["fried_foods", "baked_goods", "donuts", "cookies", "margarine", "frosting"],
+      "health_risks": ["increases_ldl_cholesterol", "decreases_hdl_cholesterol", "coronary_heart_disease"],
+      "regulatory_status": {
+        "eu": "restricted",
+        "us": "banned_2023"
+      },
+      "consumer_advice": "AVOID completely. Check labels for 'partially hydrogenated oil' even if '0g trans fat' is claimed.",
+      "sources": [
+        {
+          "organization": "FDA",
+          "type": "regulations",
+          "url": "https://www.fda.gov/food/food-additives-petitions/trans-fat"
+        },
+        {
+          "organization": "New England Journal of Medicine",
+          "type": "research",
+          "url": "https://www.nejm.org/doi/full/10.1056/NEJMp1314072"
+        }
+      ]
+    },
+    {
+      "id": "sodium_benzoate",
+      "name": "Sodium Benzoate",
+      "e_number": "E211",
+      "risk_level": "high",
+      "category": "preservative",
+      "common_names": ["Sodium Benzoate", "E211", "Potassium Benzoate", "E212"],
+      "common_uses": ["soft_drinks", "fruit_juices", "pickles", "condiments", "salad_dressings"],
+      "health_risks": ["benzene_formation", "asthma", "allergies", "adhd"],
+      "regulatory_status": {
+        "eu": "permitted_with_restrictions",
+        "us": "gras"
+      },
+      "consumer_advice": "AVOID in beverages containing Vitamin C. Choose fresh juices without preservatives.",
+      "sources": [
+        {
+          "organization": "FDA",
+          "type": "qa",
+          "url": "https://www.fda.gov/food/environmental-contaminants-food/questions-and-answers-occurrence-benzene-soft-drinks-and-other-beverages"
+        },
+        {
+          "organization": "Healthline",
+          "type": "consumer_health",
+          "url": "https://www.healthline.com/nutrition/sodium-benzoate"
+        }
+      ]
+    },
+    {
+      "id": "nitrites",
+      "name": "Nitrites / Nitrates",
+      "e_number": ["E249", "E250", "E251", "E252"],
+      "risk_level": "high",
+      "category": "preservative",
+      "common_names": ["Sodium Nitrite", "Potassium Nitrate", "Nitrites", "Nitrates"],
+      "common_uses": ["bacon", "ham", "hot_dogs", "sausages", "deli_meats"],
+      "health_risks": ["carcinogenic_nitrosamines", "colorectal_cancer", "who_group_1_carcinogen"],
+      "regulatory_status": {
+        "eu": "permitted_with_limits",
+        "us": "permitted"
+      },
+      "consumer_advice": "LIMIT consumption. Choose uncured meats or plant-based alternatives.",
+      "sources": [
+        {
+          "organization": "WHO",
+          "type": "qa",
+          "url": "https://www.who.int/news-room/questions-and-answers/item/cancer-carcinogenicity-of-the-consumption-of-red-meat-and-processed-meat"
+        },
+        {
+          "organization": "EFSA",
+          "type": "pdf",
+          "url": "https://www.efsa.europa.eu/sites/default/files/corporate_publications/files/nitrates-nitrites-170614.pdf"
+        }
+      ]
+    },
+    {
+      "id": "bha",
+      "name": "BHA / Butylated Hydroxyanisole",
+      "e_number": "E320",
+      "risk_level": "high",
+      "category": "preservative",
+      "common_names": ["BHA", "Butylated Hydroxyanisole", "E320"],
+      "common_uses": ["cereals", "chewing_gum", "snack_foods", "packaged_baked_goods"],
+      "health_risks": ["potential_carcinogen", "endocrine_disruptor", "organ_toxicity"],
+      "regulatory_status": {
+        "eu": "severely_restricted",
+        "us": "gras"
+      },
+      "consumer_advice": "AVOID when possible. Choose products with natural preservatives.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "database",
+          "name": "Chemical Cuisine"
+        },
+        {
+          "organization": "EFSA",
+          "type": "evaluations"
+        }
+      ]
+    },
+    {
+      "id": "bht",
+      "name": "BHT / Butylated Hydroxytoluene",
+      "e_number": "E321",
+      "risk_level": "high",
+      "category": "preservative",
+      "common_names": ["BHT", "Butylated Hydroxytoluene", "E321"],
+      "common_uses": ["cereals", "snack_foods", "packaged_baked_goods", "fats", "oils"],
+      "health_risks": ["potential_carcinogen", "organ_toxicity", "endocrine_disruption"],
+      "regulatory_status": {
+        "eu": "severely_restricted",
+        "us": "gras"
+      },
+      "consumer_advice": "AVOID when possible. Same guidance as BHA.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "database",
+          "name": "Chemical Cuisine"
+        },
+        {
+          "organization": "EFSA",
+          "type": "evaluations"
+        }
+      ]
+    },
+    {
+      "id": "propylparaben",
+      "name": "Propylparaben",
+      "e_number": null,
+      "risk_level": "high",
+      "category": "preservative",
+      "common_names": ["Propylparaben", "Parabens"],
+      "common_uses": ["processed_foods", "beverages", "baked_goods"],
+      "health_risks": ["endocrine_disruptor", "estrogen_mimic", "hormone_disruption"],
+      "regulatory_status": {
+        "eu": "under_scrutiny",
+        "us": "permitted"
+      },
+      "consumer_advice": "AVOID when possible. Check labels for 'parabens' in ingredient lists.",
+      "sources": [
+        {
+          "organization": "EU SCCS",
+          "type": "opinion",
+          "url": "https://health.ec.europa.eu/system/files/2022-08/sccs_o_243.pdf"
+        },
+        {
+          "organization": "EWG",
+          "type": "consumer_health",
+          "url": "https://www.ewg.org/research/propyl-paraben"
+        }
+      ]
+    },
+    {
+      "id": "titanium_dioxide",
+      "name": "Titanium Dioxide",
+      "e_number": "E171",
+      "risk_level": "high",
+      "category": "color_additive",
+      "common_names": ["Titanium Dioxide", "E171", "TiO2"],
+      "common_uses": ["candies", "baked_goods", "pastries", "chewing_gum", "icing"],
+      "health_risks": ["genotoxicity", "dna_damage", "intestinal_inflammation"],
+      "regulatory_status": {
+        "eu": "banned_2022",
+        "us": "permitted",
+        "uk": "permitted"
+      },
+      "consumer_advice": "AVOID. EU's ban was based on inability to rule out genotoxicity concerns.",
+      "sources": [
+        {
+          "organization": "EFSA",
+          "type": "opinion",
+          "year": "2021"
+        },
+        {
+          "organization": "European Commission",
+          "type": "ban_implementation"
+        }
+      ]
+    },
+    {
+      "id": "red_40",
+      "name": "Red 40 / Allura Red AC",
+      "e_number": "E129",
+      "risk_level": "medium",
+      "category": "artificial_color",
+      "common_names": ["Red 40", "Allura Red AC", "E129"],
+      "common_uses": ["sports_drinks", "sodas", "candy", "cereals", "baked_goods"],
+      "health_risks": ["hyperactivity", "attention_deficits", "allergic_reactions", "hypersensitivity"],
+      "regulatory_status": {
+        "eu": "permitted_with_warning_label",
+        "us": "permitted"
+      },
+      "consumer_advice": "LIMIT especially for children. Choose natural-colored alternatives.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "report",
+          "name": "Food Dyes: A Rainbow of Risks",
+          "url": "https://www.cspi.org/sites/default/files/attachment/food-dyes-rainbow-of-risks.pdf"
+        },
+        {
+          "organization": "California OEHHA",
+          "type": "assessment",
+          "url": "https://oehha.ca.gov/sites/default/files/media/downloads/risk-assessment/report/healthefftsassess041621.pdf"
+        },
+        {
+          "organization": "PubMed",
+          "type": "study",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23026007/"
+        }
+      ]
+    },
+    {
+      "id": "yellow_5",
+      "name": "Yellow 5 / Tartrazine",
+      "e_number": "E102",
+      "risk_level": "medium",
+      "category": "artificial_color",
+      "common_names": ["Yellow 5", "Tartrazine", "E102"],
+      "common_uses": ["candies", "cereals", "baked_goods", "beverages"],
+      "health_risks": ["hyperactivity", "allergic_reactions", "asthma_triggers"],
+      "regulatory_status": {
+        "eu": "permitted_with_warning_label",
+        "us": "permitted"
+      },
+      "consumer_advice": "LIMIT especially for children or those with aspirin sensitivity.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "report"
+        },
+        {
+          "organization": "PubMed",
+          "type": "studies"
+        }
+      ]
+    },
+    {
+      "id": "yellow_6",
+      "name": "Yellow 6 / Sunset Yellow FCF",
+      "e_number": "E110",
+      "risk_level": "medium",
+      "category": "artificial_color",
+      "common_names": ["Yellow 6", "Sunset Yellow FCF", "E110"],
+      "common_uses": ["candies", "cereals", "baked_goods", "macaroni_and_cheese"],
+      "health_risks": ["hyperactivity", "hypersensitivity", "adrenal_gland_effects"],
+      "regulatory_status": {
+        "eu": "permitted_with_warning_label",
+        "us": "permitted"
+      },
+      "consumer_advice": "LIMIT especially for children. Choose naturally colored products.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "report"
+        },
+        {
+          "organization": "PubMed",
+          "type": "studies"
+        }
+      ]
+    },
+    {
+      "id": "blue_1",
+      "name": "Blue 1 / Brilliant Blue FCF",
+      "e_number": "E133",
+      "risk_level": "medium",
+      "category": "artificial_color",
+      "common_names": ["Blue 1", "Brilliant Blue FCF", "E133"],
+      "common_uses": ["beverages", "candies", "baked_goods", "ice_cream"],
+      "health_risks": ["hypersensitivity", "allergic_reactions", "hives", "swelling"],
+      "regulatory_status": {
+        "eu": "permitted",
+        "us": "permitted"
+      },
+      "consumer_advice": "LIMIT if sensitive to food dyes. Choose natural blue alternatives.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "database"
+        },
+        {
+          "organization": "PubMed",
+          "type": "studies"
+        }
+      ]
+    },
+    {
+      "id": "aspartame",
+      "name": "Aspartame",
+      "e_number": "E951",
+      "risk_level": "medium",
+      "category": "artificial_sweetener",
+      "common_names": ["Aspartame", "E951", "Equal", "NutraSweet"],
+      "common_uses": ["diet_sodas", "sugar_free_gum", "sugar_free_desserts", "tabletop_sweeteners"],
+      "health_risks": ["possible_carcinogen", "cardiovascular_concerns", "weight_gain_controversy"],
+      "regulatory_status": {
+        "fda": "gras",
+        "eu": "permitted",
+        "who": "group_2b_carcinogen"
+      },
+      "consumer_advice": "LIMIT consumption. WHO's carcinogen classification warrants caution.",
+      "sources": [
+        {
+          "organization": "WHO",
+          "type": "assessment",
+          "url": "https://www.who.int/news/item/14-07-2023-aspartame-hazard-and-risk-assessment-results-released",
+          "year": "2023"
+        },
+        {
+          "organization": "FDA",
+          "type": "information",
+          "url": "https://www.fda.gov/food/food-additives-petitions/aspartame-and-other-sweeteners-food"
+        },
+        {
+          "organization": "National Cancer Institute",
+          "type": "fact_sheet",
+          "url": "https://www.cancer.gov/about-cancer/causes-prevention/risk/diet/artificial-sweeteners-fact-sheet"
+        }
+      ]
+    },
+    {
+      "id": "sucralose",
+      "name": "Sucralose",
+      "e_number": "E955",
+      "risk_level": "medium",
+      "category": "artificial_sweetener",
+      "common_names": ["Sucralose", "E955", "Splenda"],
+      "common_uses": ["diet_beverages", "sugar_free_products", "baked_goods", "protein_powders"],
+      "health_risks": ["cardiovascular_disease_risk", "gut_microbiome_disruption", "metabolic_effects"],
+      "regulatory_status": {
+        "fda": "permitted",
+        "eu": "permitted"
+      },
+      "consumer_advice": "LIMIT consumption. Emerging research on cardiovascular risks warrants moderation.",
+      "sources": [
+        {
+          "organization": "PMC",
+          "type": "study",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10822749/"
+        },
+        {
+          "organization": "Harvard Health",
+          "type": "article",
+          "url": "https://www.health.harvard.edu/heart-health/sugar-substitutes-new-cardiovascular-concerns"
+        }
+      ]
+    },
+    {
+      "id": "acesulfame_potassium",
+      "name": "Acesulfame Potassium / Ace-K",
+      "e_number": "E950",
+      "risk_level": "medium",
+      "category": "artificial_sweetener",
+      "common_names": ["Ace-K", "Acesulfame Potassium", "E950", "Sweet One", "Sunett"],
+      "common_uses": ["diet_sodas", "sugar_free_products", "chewing_gum"],
+      "health_risks": ["cardiovascular_disease_risk", "metabolic_disruption", "prenatal_development_concerns"],
+      "regulatory_status": {
+        "fda": "permitted",
+        "eu": "permitted"
+      },
+      "consumer_advice": "LIMIT consumption. Often found alongside aspartame in diet sodas.",
+      "sources": [
+        {
+          "organization": "PMC",
+          "type": "studies"
+        },
+        {
+          "organization": "Harvard Health",
+          "type": "cardiovascular_concerns"
+        }
+      ]
+    },
+    {
+      "id": "msg",
+      "name": "Monosodium Glutamate",
+      "e_number": "E621",
+      "risk_level": "low",
+      "category": "flavor_enhancer",
+      "common_names": ["MSG", "Monosodium Glutamate", "E621"],
+      "common_uses": ["processed_foods", "snack_foods", "restaurant_meals", "soups", "soy_sauce"],
+      "health_risks": ["mild_symptoms_in_some_individuals"],
+      "regulatory_status": {
+        "fda": "gras",
+        "eu": "authorized",
+        "who_fao_jecfa": "safe"
+      },
+      "consumer_advice": "Generally safe. If you experience sensitivity symptoms, avoid it.",
+      "sources": [
+        {
+          "organization": "WHO/FAO JECFA",
+          "type": "database",
+          "url": "https://www.who.int/teams/food-nutrition/jecfa"
+        },
+        {
+          "organization": "FDA",
+          "type": "gras_status"
+        }
+      ],
+      "notes": "Overwhelming scientific consensus of safety. 'Chinese Restaurant Syndrome' largely debunked."
+    },
+    {
+      "id": "carrageenan",
+      "name": "Carrageenan",
+      "e_number": "E407",
+      "risk_level": "low_medium",
+      "category": "thickener",
+      "common_names": ["Carrageenan", "E407"],
+      "common_uses": ["dairy_products", "plant_milks", "processed_meats", "infant_formula"],
+      "health_risks": ["potential_digestive_inflammation"],
+      "regulatory_status": {
+        "fda": "gras",
+        "eu": "permitted",
+        "jecfa": "adi_established"
+      },
+      "consumer_advice": "Generally safe for most people. If you experience digestive issues, try eliminating it.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "notes_uncertainty"
+        },
+        {
+          "organization": "FDA",
+          "type": "gras_status"
+        }
+      ]
+    },
+    {
+      "id": "caramel_color",
+      "name": "Caramel Colors",
+      "e_number": ["E150a", "E150b", "E150c", "E150d"],
+      "risk_level": "low_medium",
+      "category": "color_additive",
+      "common_names": ["Caramel Color", "Caramel Coloring"],
+      "common_uses": ["colas", "baked_goods", "sauces", "beer", "gravies"],
+      "health_risks": ["4_mei_in_e150c_d"],
+      "regulatory_status": {
+        "fda": "all_permitted",
+        "eu": "all_permitted_with_4mei_limits_for_c_d",
+        "california": "4mei_listed"
+      },
+      "consumer_advice": "E150a and E150b are safer. E150c and E150d have higher 4-MEI levels.",
+      "sources": [
+        {
+          "organization": "CSPI",
+          "type": "database"
+        },
+        {
+          "organization": "California Proposition 65",
+          "type": "regulatory_listing"
+        }
+      ]
+    }
+  ],
+  "risk_categories": {
+    "high": {
+      "description": "Avoid completely. Banned in EU or serious health concerns.",
+      "ui_indicator": "⚠️ AVOID",
+      "color": "red",
+      "count": 10
+    },
+    "medium": {
+      "description": "Limit consumption. Moderate health concerns or controversial safety profile.",
+      "ui_indicator": "⚠️ CAUTION",
+      "color": "yellow",
+      "count": 7
+    },
+    "low": {
+      "description": "Generally recognized as safe by regulatory authorities.",
+      "ui_indicator": "✓ OK",
+      "color": "green",
+      "count": 3
+    }
+  },
+  "categories": {
+    "preservative": {
+      "description": "Prevents spoilage and extends shelf life"
+    },
+    "artificial_color": {
+      "description": "Synthetic dyes to enhance appearance"
+    },
+    "artificial_sweetener": {
+      "description": "Sugar substitutes for sweetness without calories"
+    },
+    "flavor_enhancer": {
+      "description": "Enhances taste and aroma"
+    },
+    "emulsifier": {
+      "description": "Keeps ingredients from separating"
+    },
+    "fat_source": {
+      "description": "Provides texture and mouthfeel"
+    },
+    "thickener": {
+      "description": "Increases viscosity and stabilizes"
+    },
+    "flour_treatment_agent": {
+      "description": "Improves dough strength and rising"
+    }
+  },
+  "regulatory_bodies": {
+    "EFSA": {
+      "name": "European Food Safety Authority",
+      "approach": "Precautionary principle - ban until proven safe",
+      "website": "https://www.efsa.europa.eu"
+    },
+    "FDA": {
+      "name": "US Food and Drug Administration",
+      "approach": "Generally recognized as safe until proven harmful",
+      "website": "https://www.fda.gov/food"
+    },
+    "WHO": {
+      "name": "World Health Organization",
+      "website": "https://www.who.int"
+    },
+    "JECFA": {
+      "name": "Joint FAO/WHO Expert Committee on Food Additives",
+      "website": "https://www.who.int/teams/food-nutrition/jecfa"
+    },
+    "CSPI": {
+      "name": "Center for Science in the Public Interest",
+      "resource": "Chemical Cuisine database",
+      "website": "https://www.cspi.org"
+    }
+  }
+}
