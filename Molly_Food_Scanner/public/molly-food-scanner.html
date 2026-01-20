@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Molly Food Scanner - AI-Powered Food Analysis</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+        import { BrowserMultiFormatReader } from 'https://unpkg.com/@zxing/library@0.20.0';
+        window.BrowserMultiFormatReader = BrowserMultiFormatReader;
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -103,6 +107,125 @@
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
+        }
+
+        /* Barcode Scanner Modal */
+        .scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .scanner-overlay.active {
+            display: flex;
+        }
+
+        .scanner-container {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            aspect-ratio: 3/4;
+        }
+
+        #scannerVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 16px;
+            background: #000;
+        }
+
+        .scanner-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 30%;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+        }
+
+        .scanner-guide::before,
+        .scanner-guide::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #60a5fa;
+        }
+
+        .scanner-guide::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .scanner-guide::after {
+            bottom: -2px;
+            right: -2px;
+            border-left: none;
+            border-top: none;
+        }
+
+        .scanner-status {
+            margin-top: 24px;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .scanner-status h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .scanner-status p {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .close-scanner {
+            margin-top: 24px;
+            padding: 12px 32px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-scanner:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .scanning-line {
+            position: absolute;
+            top: 35%;
+            left: 10%;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+            animation: scanMove 2s ease-in-out infinite;
+        }
+
+        @keyframes scanMove {
+            0%, 100% { top: 35%; }
+            50% { top: 65%; }
         }
     </style>
 </head>
@@ -250,6 +373,20 @@
         <footer class="mt-16 text-center text-sm text-slate-500">
             <p>Powered by AI • Built with ❤️ for healthier eating</p>
         </footer>
+    </div>
+
+    <!-- Barcode Scanner Modal -->
+    <div id="scannerOverlay" class="scanner-overlay">
+        <div class="scanner-container">
+            <video id="scannerVideo" autoplay playsinline></video>
+            <div class="scanner-guide"></div>
+            <div class="scanning-line"></div>
+        </div>
+        <div class="scanner-status">
+            <h3 id="scannerStatus">Scanning...</h3>
+            <p>Align barcode within the frame</p>
+        </div>
+        <button id="closeScannerBtn" class="close-scanner">Cancel Scan</button>
     </div>
 
     <script>
@@ -606,10 +743,259 @@
             }
         }
 
-        // Barcode Scan (placeholder)
-        document.getElementById('scanBtn').addEventListener('click', () => {
-            alert('Barcode scanning would open camera here');
+        // Barcode Scanner Elements
+        const scannerOverlay = document.getElementById('scannerOverlay');
+        const scannerVideo = document.getElementById('scannerVideo');
+        const scannerStatus = document.getElementById('scannerStatus');
+        const closeScannerBtn = document.getElementById('closeScannerBtn');
+
+        // Barcode scanner state
+        let codeReader = null;
+        let isScanning = false;
+
+        // Open barcode scanner
+        document.getElementById('scanBtn').addEventListener('click', async () => {
+            try {
+                // Check if BrowserMultiFormatReader is available
+                if (typeof BrowserMultiFormatReader === 'undefined') {
+                    throw new Error('ZXing library not loaded. Please refresh the page.');
+                }
+
+                // Show scanner overlay
+                scannerOverlay.classList.add('active');
+                scannerStatus.textContent = 'Requesting camera access...';
+
+                // Initialize barcode reader
+                codeReader = new BrowserMultiFormatReader();
+                isScanning = true;
+
+                // Request camera access and start scanning
+                const videoInputDevices = await codeReader.listVideoInputDevices();
+
+                if (videoInputDevices.length === 0) {
+                    throw new Error('No camera devices found on this device.');
+                }
+
+                // Use the first (rear) camera or the last (front) camera
+                const selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
+
+                scannerStatus.textContent = 'Scanning...';
+
+                // Start continuous scanning
+                codeReader.decodeFromVideoDevice(
+                    selectedDeviceId,
+                    'scannerVideo',
+                    (result, err) => {
+                        if (result && isScanning) {
+                            // Barcode detected!
+                            handleBarcodeDetected(result.text);
+                        }
+                    }
+                );
+
+            } catch (error) {
+                console.error('Scanner error:', error);
+                scannerOverlay.classList.remove('active');
+
+                // Handle permission errors
+                if (error.name === 'NotAllowedError') {
+                    showError('Camera access denied. Please allow camera access to scan barcodes.');
+                } else if (error.name === 'NotFoundError') {
+                    showError('No camera found on this device. Please use a device with a camera.');
+                } else if (error.name === 'NotReadableError') {
+                    showError('Camera is already in use by another application.');
+                } else {
+                    showError(error.message || 'Failed to open camera. Please try again.');
+                }
+            }
         });
+
+        // Close barcode scanner
+        closeScannerBtn.addEventListener('click', () => {
+            stopScanner();
+        });
+
+        // Stop scanning and cleanup
+        function stopScanner() {
+            isScanning = false;
+
+            if (codeReader) {
+                codeReader.reset();
+                codeReader = null;
+            }
+
+            scannerOverlay.classList.remove('active');
+            scannerStatus.textContent = 'Scanning...';
+        }
+
+        // Handle detected barcode
+        async function handleBarcodeDetected(barcodeText) {
+            stopScanner();
+            scannerStatus.textContent = 'Barcode found! Looking up product...';
+
+            try {
+                // Step 1: Look up product in Open Food Facts
+                const openFoodFactsData = await lookupOpenFoodFacts(barcodeText);
+
+                if (openFoodFactsData && openFoodFactsData.status === 1) {
+                    // Product found in Open Food Facts
+                    await displayOpenFoodFactsProduct(openFoodFactsData, barcodeText);
+                } else {
+                    // Product not found, fallback to AI analysis
+                    scannerStatus.textContent = 'Product not found in database. Analyzing with AI...';
+                    await analyzeBarcodeWithAI(barcodeText);
+                }
+
+            } catch (error) {
+                console.error('Barcode lookup error:', error);
+                showError(error.message || 'Failed to lookup barcode. Please try again.');
+            }
+        }
+
+        // Open Food Facts API lookup
+        async function lookupOpenFoodFacts(barcode) {
+            try {
+                const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+
+                if (!response.ok) {
+                    return null;
+                }
+
+                const data = await response.json();
+                return data;
+
+            } catch (error) {
+                console.error('Open Food Facts API error:', error);
+                return null;
+            }
+        }
+
+        // Display Open Food Facts product data
+        async function displayOpenFoodFactsProduct(data, barcode) {
+            const product = data.product;
+
+            // Extract product information
+            const productName = product.product_name || product.product_name_en || 'Unknown Product';
+            const ingredients = product.ingredients_text || product.ingredients_text_en || 'No ingredients listed';
+            const additives = product.additives_tags || [];
+            const nutriscore = product.nutriscore_grade || 'unknown';
+            const novaGroup = product.nova_group || null;
+            const imageFrontUrl = product.image_front_url;
+
+            // Update status
+            statusBadge.textContent = 'Processing...';
+            statusBadge.classList.add('pulse');
+
+            // Prepare analysis data
+            let analysisData = {
+                name: productName,
+                barcode: barcode,
+                summary: `Product found in Open Food Facts database. Nutri-Score: ${nutriscore.toUpperCase()}`,
+                rating: calculateNutriScoreRating(nutriscore),
+                chemicals: extractChemicalsFromAdditives(additives, ingredients),
+                sources: ['Open Food Facts']
+            };
+
+            // Add to summary
+            if (novaGroup) {
+                analysisData.summary += ` | NOVA Group: ${novaGroup} (${getNovaGroupDescription(novaGroup)})`;
+            }
+
+            if (additives.length > 0) {
+                analysisData.summary += ` | ${additives.length} additives detected`;
+            }
+
+            // Display analysis
+            displayFoodAnalysis(analysisData);
+
+            // Store food context for chat
+            currentScanId = barcode;
+            currentAnalysisData = analysisData;
+
+            statusBadge.textContent = 'Complete';
+            statusBadge.classList.remove('pulse');
+
+            addMessage('assistant', `Found product: ${productName}. Nutri-Score: ${nutriscore.toUpperCase()}`);
+        }
+
+        // Calculate rating from Nutri-Score (A=100, B=75, C=50, D=25, E=0)
+        function calculateNutriScoreRating(nutriscore) {
+            const scores = { a: 90, b: 70, c: 50, d: 30, e: 10 };
+            return scores[nutriscore.toLowerCase()] || 50;
+        }
+
+        // Get NOVA group description
+        function getNovaGroupDescription(group) {
+            const descriptions = {
+                1: 'Unprocessed or minimally processed',
+                2: 'Processed culinary ingredients',
+                3: 'Processed foods',
+                4: 'Ultra-processed foods'
+            };
+            return descriptions[group] || 'Unknown';
+        }
+
+        // Extract chemicals from additives
+        function extractChemicalsFromAdditives(additives, ingredients) {
+            const chemicals = [];
+
+            additives.forEach((additive, index) => {
+                // Extract E-number if present
+                const eNumber = additive.match(/e\d+/i) ? additive.match(/e\d+/i)[0].toUpperCase() : null;
+
+                chemicals.push({
+                    name: eNumber || additive.replace(/-/g, ' ').replace(/^en:/, ''),
+                    risk_level: 'Medium',
+                    description: 'Food additive. Research potential health effects.',
+                    source: 'Open Food Facts'
+                });
+            });
+
+            return chemicals;
+        }
+
+        // Fallback: Analyze barcode with AI
+        async function analyzeBarcodeWithAI(barcode) {
+            try {
+                statusBadge.textContent = 'Analyzing with AI...';
+                statusBadge.classList.add('pulse');
+
+                const analyzeResponse = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        barcode_text: barcode
+                    })
+                });
+
+                if (!analyzeResponse.ok) {
+                    const errorData = await analyzeResponse.json();
+                    throw new Error(errorData.details || errorData.error || 'Analysis failed');
+                }
+
+                const analysis = await analyzeResponse.json();
+
+                // Display results
+                displayFoodAnalysis(analysis);
+
+                // Store food context for chat
+                if (analysis.id) {
+                    currentScanId = analysis.id;
+                    currentAnalysisData = analysis;
+                }
+
+                statusBadge.textContent = 'Complete';
+                statusBadge.classList.remove('pulse');
+
+            } catch (error) {
+                console.error('AI analysis error:', error);
+                showError(error.message || 'Failed to analyze barcode. Please try again.');
+                statusBadge.textContent = 'Error';
+                statusBadge.classList.remove('pulse');
+            }
+        }
     </script>
 </body>
 </html>
